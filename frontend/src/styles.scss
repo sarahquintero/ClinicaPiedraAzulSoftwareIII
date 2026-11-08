@@ -1,0 +1,328 @@
+/* ==========================================================================
+   Clínica Piedra Azul — Hoja de Estilos Global (Fase 3 Final)
+   Tema Principal: Azul Celeste (Light Blue) y Blanco · Accesibilidad Senior
+   Tipografía Base 18px-20px · Botones >= 48x48px · Alto Contraste AAA
+   ========================================================================== */
+
+:root {
+  /* Tema Principal: Blanco Puro y Azul Celeste Claro (Light Blue) para Paneles */
+  --pa-white: #ffffff;
+  --pa-bg: #f0f8ff; /* AliceBlue / Azul Celeste muy suave de fondo general */
+  --pa-surface: #ffffff; /* Blanco puro para tarjetas principales */
+  --pa-surface-alt: #e6f4fe; /* Azul celeste claro para fondos de paneles y cabeceras */
+  --pa-panel-sky: #dff0fe; /* Azul celeste suave para bloques destacados */
+  --pa-border: #9bc9eb; /* Borde celeste definido y visible */
+  --pa-border-strong: #4a90c2; /* Borde azul celeste intenso para inputs */
+
+  /* Textos en Azul Marino / Gris Oscuro para Máximo Contraste de Accesibilidad */
+  --pa-text-main: #0b2545;
+  --pa-text-secondary: #1e3a5f;
+  --pa-text-muted: #335c81;
+
+  /* Azules para Botones Principales y Acentos (Azul Fuerte Clínico) */
+  --pa-blue-900: #0b2545;
+  --pa-blue-800: #035388;
+  --pa-blue-700: #0277bd; /* Azul principal de botones */
+  --pa-blue-600: #039be5;
+  --pa-blue-500: #29b6f6;
+  --pa-blue-200: #b3e5fc;
+  --pa-blue-100: #e1f5fe;
+  --pa-blue-50: #f0f9ff;
+
+  /* Acentos de Confirmación y Estado Positivo */
+  --pa-green-800: #065f46;
+  --pa-green-700: #0284c7; /* Unificado en gama azul celeste/cerúleo fuerte */
+  --pa-green-600: #0369a1;
+  --pa-green-500: #0ea5e9;
+  --pa-green-200: #bae6fd;
+  --pa-green-100: #e0f2fe;
+  --pa-green-50: #f0f9ff;
+
+  /* Estados Semánticos de Alto Contraste */
+  --pa-success-bg: #dcfce7;
+  --pa-success-border: #15803d;
+  --pa-success-text: #14532d;
+  --pa-warning-bg: #fef9c3;
+  --pa-warning-border: #ca8a04;
+  --pa-warning-text: #713f12;
+  --pa-danger-bg: #fef2f2;
+  --pa-danger-border: #dc2626;
+  --pa-danger-text: #991b1b;
+  --pa-danger-500: #dc2626;
+
+  /* Bordes, Radios y Sombras */
+  --pa-radius-sm: 10px;
+  --pa-radius-md: 14px;
+  --pa-radius-lg: 18px;
+  --pa-shadow-sm: 0 3px 12px rgba(11, 37, 69, 0.07);
+  --pa-shadow-md: 0 8px 26px rgba(2, 119, 189, 0.12);
+  --pa-shadow-lg: 0 14px 36px rgba(11, 37, 69, 0.16);
+  --pa-transition: 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Tamaño base mínimo 18px, cuerpo en 20px para lectura cómoda de tercera edad */
+html {
+  font-size: 18px;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background-color: var(--pa-bg);
+  color: var(--pa-text-main);
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;
+  font-size: 1.111rem; /* 20px efectivos */
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: var(--pa-blue-900);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: clamp(1.7rem, 2.8vw, 2.2rem);
+}
+
+h2 {
+  font-size: clamp(1.4rem, 2.2vw, 1.7rem);
+}
+
+h3 {
+  font-size: 1.28rem;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--pa-blue-800);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--pa-transition);
+
+  &:hover {
+    color: var(--pa-blue-700);
+  }
+}
+
+:focus-visible {
+  outline: 3px solid var(--pa-blue-700);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   Estilos Globales de Formularios Claros (Azul Celeste y Blanco)
+   ========================================================================== */
+
+.pa-form-card {
+  background-color: var(--pa-white);
+  border: 2px solid var(--pa-border);
+  border-radius: var(--pa-radius-lg);
+  box-shadow: var(--pa-shadow-sm);
+  padding: 1.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.pa-form-card__header {
+  background-color: var(--pa-surface-alt);
+  border: 1.5px solid var(--pa-border);
+  border-radius: var(--pa-radius-md);
+  padding: 1.15rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  p {
+    color: var(--pa-text-secondary);
+    font-size: 1.05rem;
+  }
+}
+
+.pa-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.35rem 1.5rem;
+}
+
+.pa-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.pa-form-field--full {
+  grid-column: 1 / -1;
+}
+
+.pa-form-label {
+  font-size: 1.111rem; /* 20px */
+  font-weight: 800;
+  color: var(--pa-blue-900);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pa-form-req {
+  color: var(--pa-danger-500);
+  font-weight: 900;
+}
+
+.pa-form-control {
+  width: 100%;
+  min-height: 54px; /* > 48px área táctil mínima */
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-size: 1.111rem; /* 20px */
+  font-weight: 600;
+  color: var(--pa-text-main);
+  background-color: var(--pa-white);
+  border: 2px solid var(--pa-border-strong);
+  border-radius: var(--pa-radius-sm);
+  transition:
+    border-color var(--pa-transition),
+    box-shadow var(--pa-transition),
+    background-color var(--pa-transition);
+
+  &::placeholder {
+    color: #527596;
+    font-weight: 400;
+  }
+
+  &:focus {
+    border-color: var(--pa-blue-800);
+    background-color: #fafdff;
+    box-shadow: 0 0 0 4px rgba(2, 119, 189, 0.22);
+    outline: none;
+  }
+
+  &.pa-form-control--invalid {
+    border-color: var(--pa-danger-border);
+    background-color: #fffafa;
+  }
+}
+
+textarea.pa-form-control {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.pa-form-hint {
+  font-size: 0.98rem;
+  color: var(--pa-text-muted);
+}
+
+.pa-form-pending {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.95rem;
+  border-radius: var(--pa-radius-sm);
+  background-color: var(--pa-surface-alt);
+  border-left: 5px solid var(--pa-blue-700);
+  color: var(--pa-blue-900);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Mensajes de error grandes, en rojo y con ícono de advertencia */
+.pa-form-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: var(--pa-radius-sm);
+  background-color: var(--pa-danger-bg);
+  border: 2px solid #fca5a5;
+  border-left: 6px solid var(--pa-danger-border);
+  color: var(--pa-danger-text);
+  font-size: 1.08rem; /* ~19.5px */
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.pa-form-error__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.pa-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 0.85rem;
+  border-top: 2px solid var(--pa-surface-alt);
+}
+
+@media (max-width: 820px) {
+  .pa-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pa-form-card {
+    padding: 1.25rem;
+  }
+}
+
+/* ==========================================================================
+   Animaciones Sutiles (Transición de Página y Filas de Tabla)
+   ========================================================================== */
+
+@keyframes paPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes paRowFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pa-page-animate {
+  animation: paPageEnter 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

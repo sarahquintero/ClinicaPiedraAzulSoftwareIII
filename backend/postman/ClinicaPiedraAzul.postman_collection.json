@@ -1,0 +1,349 @@
+{
+  "info": {
+    "name": "Clínica Piedra Azul — API Fase 1",
+    "_postman_id": "9f6b1c8a-4e2d-4a91-b8c2-112233445566",
+    "description": "Colección de verificación de contratos, JWT (401) y RBAC (403) para Clínica Piedra Azul.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "pacienteToken",
+      "value": ""
+    },
+    {
+      "key": "pacienteId",
+      "value": ""
+    },
+    {
+      "key": "medicoId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Públicas",
+      "item": [
+        {
+          "name": "Healthcheck",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        },
+        {
+          "name": "Listar Médicos Activos (Público)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/medicos"
+          }
+        },
+        {
+          "name": "Verificar Cédula Ocupada (1020304050)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pacientes/verificar-cedula/1020304050"
+          }
+        },
+        {
+          "name": "Verificar Cédula Disponible (9999999999)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pacientes/verificar-cedula/9999999999"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Autenticación JWT",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('adminToken', json.token);",
+                  "pm.test('Status 200 y rol Administrador', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(json.user.role).to.eql('Administrador');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@piedraazul.com\",\n  \"password\": \"Admin123*\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Login Paciente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('pacienteToken', json.token);",
+                  "pm.test('Status 200 y rol Paciente', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(json.user.role).to.eql('Paciente');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"paciente@piedraazul.com\",\n  \"password\": \"Paciente123*\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Pruebas de Seguridad (401 y 403)",
+      "item": [
+        {
+          "name": "Ruta Privada Sin Token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe dar 401', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pacientes"
+          }
+        },
+        {
+          "name": "Paciente intentando ruta Admin -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe dar 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pacienteToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/pacientes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Paciente",
+      "item": [
+        {
+          "name": "Mis Citas (Solo propias)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pacienteToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/citas/mis-citas"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Administrador",
+      "item": [
+        {
+          "name": "Listar Médicos (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "  pm.collectionVariables.set('medicoId', json.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/medicos/admin"
+          }
+        },
+        {
+          "name": "Registrar Médico (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cedula\": \"1045901234\",\n  \"tarjetaProfesional\": \"TP-77881-COL\",\n  \"nombres\": \"Santiago\",\n  \"apellidos\": \"Mejía Restrepo\",\n  \"email\": \"s.mejia@piedraazul.com\",\n  \"telefono\": \"3123456789\",\n  \"especialidad\": \"Ortopedia\",\n  \"consultorio\": \"Consultorio 110 - Torre Azul\",\n  \"diasAtencion\": \"LUN,MAR,JUE,VIE\",\n  \"horaInicio\": \"08:00\",\n  \"horaFin\": \"16:00\"\n}"
+            },
+            "url": "{{baseUrl}}/medicos"
+          }
+        },
+        {
+          "name": "Listar Pacientes (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "  pm.collectionVariables.set('pacienteId', json.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/pacientes"
+          }
+        },
+        {
+          "name": "Registrar Paciente (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"cedula\": \"1088223344\",\n  \"nombres\": \"Juliana\",\n  \"apellidos\": \"Castro Henao\",\n  \"fechaNacimiento\": \"1995-09-21\",\n  \"genero\": \"F\",\n  \"telefono\": \"3176543210\",\n  \"email\": \"juliana.castro@correo.com\",\n  \"direccion\": \"Calle 72 # 11-30\",\n  \"grupoSanguineo\": \"O+\"\n}"
+            },
+            "url": "{{baseUrl}}/pacientes"
+          }
+        },
+        {
+          "name": "Listar Todas las Citas (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/citas"
+          }
+        },
+        {
+          "name": "Registrar Cita Médica (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cita creada exitosamente (201)', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"fechaHora\": \"2026-11-25T10:00:00.000Z\",\n  \"duracionMinutos\": 30,\n  \"motivo\": \"Control general programado desde recepción.\"\n}"
+            },
+            "url": "{{baseUrl}}/citas"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.angular/
+*.db
+*.db-journal
+.env
+coverage/
+.DS_Store

@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id          String    @id @default(uuid())
+  nombre      String
+  email       String    @unique
+  passwordHash String
+  rol         String    @default("Paciente") // Administrador | Paciente
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  paciente    Paciente?
+  citasCreadas Cita[]   @relation("CitasCreadasPorUsuario")
+}
+
+model Especialidad {
+  id          String   @id @default(uuid())
+  nombre      String   @unique
+  descripcion String?
+  icono       String?
+  activa      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  medicos     Medico[]
+}
+
+model Medico {
+  id                 String       @id @default(uuid())
+  cedula             String       @unique
+  tarjetaProfesional String       @unique
+  nombres            String
+  apellidos          String
+  email              String       @unique
+  telefono           String
+  especialidadId     String
+  especialidad       Especialidad @relation(fields: [especialidadId], references: [id])
+  consultorio        String
+  diasAtencion       String       @default("LUN,MAR,MIE,JUE,VIE")
+  horaInicio         String       @default("08:00")
+  horaFin            String       @default("17:00")
+  biografia          String?
+  activo             Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  citas              Cita[]
+}
+
+model Paciente {
+  id              String    @id @default(uuid())
+  usuarioId       String?   @unique
+  usuario         Usuario?  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  tipoDocumento   String    @default("CC") // CC | TI | CE | PASAPORTE
+  cedula          String    @unique
+  nombres         String
+  apellidos       String
+  fechaNacimiento DateTime
+  genero          String    // M | F | OTRO
+  telefono        String
+  email           String    @unique
+  direccion       String?
+  grupoSanguineo  String?
+  alergias        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  citas           Cita[]
+}
+
+model Cita {
+  id              String   @id @default(uuid())
+  pacienteId      String
+  paciente        Paciente @relation(fields: [pacienteId], references: [id])
+  medicoId        String
+  medico          Medico   @relation(fields: [medicoId], references: [id])
+  fechaHora       DateTime
+  duracionMinutos Int      @default(30)
+  motivo          String
+  notas           String?
+  estado          String   @default("PROGRAMADA") // PROGRAMADA | COMPLETADA | CANCELADA
+  creadoPorId     String
+  creadoPor       Usuario  @relation("CitasCreadasPorUsuario", fields: [creadoPorId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([medicoId, fechaHora])
+  @@index([pacienteId, fechaHora])
+}
