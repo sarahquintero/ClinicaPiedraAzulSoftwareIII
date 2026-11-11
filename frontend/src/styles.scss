@@ -326,3 +326,13 @@ textarea.pa-form-control {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Visible solo en escritorio (se oculta en tableta y móvil) */
+@media (max-width: 1024px) {
+  .pa-only-desktop { display: none !important; }
+}
+
+/* Se oculta solo en móvil */
+@media (max-width: 640px) {
+  .pa-hide-mobile { display: none !important; }
+}

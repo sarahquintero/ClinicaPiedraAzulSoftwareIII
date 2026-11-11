@@ -80,6 +80,7 @@ import { Component, Input } from '@angular/core';
     `,
   ],
 })
+
 export class LogoComponent {
   @Input() subtitle = 'Centro Médico Integral';
   @Input() compact = false;

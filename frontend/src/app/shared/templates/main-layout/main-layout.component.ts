@@ -45,6 +45,7 @@ import { HeaderComponent } from '../../organisms/header/header.component';
       .pa-layout {
         min-height: 100vh;
         display: grid;
+        grid-template-columns: minmax(0, 1fr); /* para que la columna no exceda la pantalla */
         grid-template-rows: auto auto 1fr auto;
         background-color: var(--pa-bg);
       }
