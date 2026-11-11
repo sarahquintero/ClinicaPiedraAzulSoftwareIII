@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Clínica Piedra Azul — API Fase 1",
+    "name": "Clínica Piedra Azul — API (P2)",
     "_postman_id": "9f6b1c8a-4e2d-4a91-b8c2-112233445566",
-    "description": "Colección de verificación de contratos, JWT (401) y RBAC (403) para Clínica Piedra Azul.",
+    "description": "Pruebas de rutas públicas, JWT (401), control por rol (403) y funcionalidades de Administrador y Paciente. Ejecutar la colección completa en orden con el Runner (o con newman). Requiere el seed cargado.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -25,39 +25,183 @@
     {
       "key": "medicoId",
       "value": ""
+    },
+    {
+      "key": "cedulaNueva",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "fechaCita",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "1. Públicas",
+      "name": "1. Públicas (sin token)",
       "item": [
         {
           "name": "Healthcheck",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/health"
-          }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Estado UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Listar Médicos Activos (Público)",
+          "name": "Listar médicos activos (público, sin token)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/medicos"
-          }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/medicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "medicos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 sin token', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('Devuelve un arreglo de médicos', () => { pm.expect(j.data).to.be.an('array'); pm.expect(j.data.length).to.be.above(0); });",
+                  "pm.test('Cada médico tiene nombres y especialidad', () => j.data.forEach(m => { pm.expect(m).to.have.property('nombres'); pm.expect(m).to.have.property('especialidad'); }));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Verificar Cédula Ocupada (1020304050)",
+          "name": "Verificar cédula ocupada (1020304050)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/pacientes/verificar-cedula/1020304050"
-          }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes/verificar-cedula/1020304050",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes",
+                "verificar-cedula",
+                "1020304050"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 sin token', () => pm.response.to.have.status(200));",
+                  "pm.test('existe = true', () => pm.expect(pm.response.json().existe).to.eql(true));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Verificar Cédula Disponible (9999999999)",
+          "name": "Verificar cédula disponible (9999999999)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/pacientes/verificar-cedula/9999999999"
-          }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes/verificar-cedula/9999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes",
+                "verificar-cedula",
+                "9999999999"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 sin token', () => pm.response.to.have.status(200));",
+                  "pm.test('existe = false', () => pm.expect(pm.response.json().existe).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login con credenciales incorrectas -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@piedraazul.com\",\n  \"password\": \"ClaveIncorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Debe dar 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -66,22 +210,51 @@
       "item": [
         {
           "name": "Login Administrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@piedraazul.com\",\n  \"password\": \"Admin123*\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
                   "if (json.token) pm.collectionVariables.set('adminToken', json.token);",
-                  "pm.test('Status 200 y rol Administrador', () => {",
-                  "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.user.role).to.eql('Administrador');",
-                  "});"
-                ],
-                "type": "text/javascript"
+                  "pm.test('Status 200 y rol Administrador', () => { pm.response.to.have.status(200); pm.expect(json.token).to.be.a('string'); pm.expect(json.user.role).to.eql('Administrador'); });",
+                  "pm.test('El token tiene estructura JWT (3 partes)', () => pm.expect(json.token.split('.')).to.have.lengthOf(3));"
+                ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Login Paciente",
           "request": {
             "method": "POST",
             "header": [
@@ -90,92 +263,618 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@piedraazul.com\",\n  \"password\": \"Admin123*\"\n}"
-            },
-            "url": "{{baseUrl}}/auth/login"
-          }
-        },
-        {
-          "name": "Login Paciente",
+              "raw": "{\n  \"email\": \"paciente@piedraazul.com\",\n  \"password\": \"Paciente123*\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
                   "if (json.token) pm.collectionVariables.set('pacienteToken', json.token);",
-                  "pm.test('Status 200 y rol Paciente', () => {",
-                  "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.user.role).to.eql('Paciente');",
-                  "});"
-                ],
-                "type": "text/javascript"
+                  "pm.test('Status 200 y rol Paciente', () => { pm.response.to.have.status(200); pm.expect(json.token).to.be.a('string'); pm.expect(json.user.role).to.eql('Paciente'); });",
+                  "pm.test('El token tiene estructura JWT (3 partes)', () => pm.expect(json.token.split('.')).to.have.lengthOf(3));"
+                ]
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"paciente@piedraazul.com\",\n  \"password\": \"Paciente123*\"\n}"
-            },
-            "url": "{{baseUrl}}/auth/login"
-          }
+          ]
         }
       ]
     },
     {
-      "name": "3. Pruebas de Seguridad (401 y 403)",
+      "name": "3. Seguridad (401 y 403)",
       "item": [
         {
-          "name": "Ruta Privada Sin Token -> 401",
-          "event": [
+          "name": "3.1 Sin token -> 401",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Debe dar 401', () => pm.response.to.have.status(401));"
+              "name": "Sin token: GET /medicos/admin -> 401",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/medicos/admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "medicos",
+                    "admin"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Sin token debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Sin token: POST /medicos -> 401",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "url": {
+                  "raw": "{{baseUrl}}/medicos",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "medicos"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cedula\": \"1000000001\",\n  \"tarjetaProfesional\": \"TP-0001\",\n  \"nombres\": \"Prueba\",\n  \"apellidos\": \"Seguridad\",\n  \"email\": \"seg@test.com\",\n  \"telefono\": \"3000000000\",\n  \"especialidad\": \"Medicina General\",\n  \"consultorio\": \"101\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Sin token debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Sin token: GET /pacientes -> 401",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pacientes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pacientes"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Sin token debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Sin token: POST /pacientes -> 401",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pacientes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pacientes"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"cedula\": \"1000000002\",\n  \"nombres\": \"Prueba\",\n  \"apellidos\": \"Seguridad\",\n  \"fechaNacimiento\": \"1990-01-01\",\n  \"genero\": \"M\",\n  \"telefono\": \"3000000000\",\n  \"email\": \"seg2@test.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Sin token debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Sin token: GET /citas -> 401",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/citas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "citas"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Sin token debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Sin token: POST /citas -> 401",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/citas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "citas"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"pacienteId\": \"00000000-0000-4000-8000-000000000000\",\n  \"medicoId\": \"00000000-0000-4000-8000-000000000000\",\n  \"fechaHora\": \"2030-01-01T10:00:00.000Z\",\n  \"duracionMinutos\": 30,\n  \"motivo\": \"Prueba de seguridad\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Sin token debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Sin token: GET /citas/mis-citas -> 401",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/citas/mis-citas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "citas",
+                    "mis-citas"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Sin token debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Token inválido: GET /pacientes -> 401",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer esto.no.esunjwt"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pacientes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pacientes"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Token inválido debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Token inválido: GET /citas/mis-citas -> 401",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer abc"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/citas/mis-citas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "citas",
+                    "mis-citas"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Token inválido debe dar 401', () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ]
             }
-          ],
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/pacientes"
-          }
+          ]
         },
         {
-          "name": "Paciente intentando ruta Admin -> 403",
-          "event": [
+          "name": "3.2 Rol no autorizado -> 403",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Debe dar 403', () => pm.response.to.have.status(403));"
+              "name": "Paciente: GET /medicos/admin -> 403",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{pacienteToken}}"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "url": {
+                  "raw": "{{baseUrl}}/medicos/admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "medicos",
+                    "admin"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rol no autorizado debe dar 403', () => pm.response.to.have.status(403));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Paciente: POST /medicos -> 403",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{pacienteToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/medicos",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "medicos"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cedula\": \"1000000001\",\n  \"tarjetaProfesional\": \"TP-0001\",\n  \"nombres\": \"Prueba\",\n  \"apellidos\": \"Seguridad\",\n  \"email\": \"seg@test.com\",\n  \"telefono\": \"3000000000\",\n  \"especialidad\": \"Medicina General\",\n  \"consultorio\": \"101\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rol no autorizado debe dar 403', () => pm.response.to.have.status(403));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Paciente: GET /pacientes -> 403",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{pacienteToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pacientes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pacientes"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rol no autorizado debe dar 403', () => pm.response.to.have.status(403));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Paciente: POST /pacientes -> 403",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{pacienteToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pacientes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pacientes"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"cedula\": \"1000000002\",\n  \"nombres\": \"Prueba\",\n  \"apellidos\": \"Seguridad\",\n  \"fechaNacimiento\": \"1990-01-01\",\n  \"genero\": \"M\",\n  \"telefono\": \"3000000000\",\n  \"email\": \"seg2@test.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rol no autorizado debe dar 403', () => pm.response.to.have.status(403));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Paciente: GET /citas -> 403",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{pacienteToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/citas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "citas"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rol no autorizado debe dar 403', () => pm.response.to.have.status(403));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Paciente: POST /citas -> 403",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{pacienteToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/citas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "citas"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"pacienteId\": \"00000000-0000-4000-8000-000000000000\",\n  \"medicoId\": \"00000000-0000-4000-8000-000000000000\",\n  \"fechaHora\": \"2030-01-01T10:00:00.000Z\",\n  \"duracionMinutos\": 30,\n  \"motivo\": \"Prueba de seguridad\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rol no autorizado debe dar 403', () => pm.response.to.have.status(403));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Administrador: GET /citas/mis-citas -> 403",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/citas/mis-citas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "citas",
+                    "mis-citas"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Administrador no puede usar la ruta de Paciente: 403', () => pm.response.to.have.status(403));"
+                    ]
+                  }
+                }
+              ]
             }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{pacienteToken}}"
-              }
-            ],
-            "url": "{{baseUrl}}/pacientes"
-          }
+          ]
         }
       ]
     },
@@ -183,7 +882,7 @@
       "name": "4. Paciente",
       "item": [
         {
-          "name": "Mis Citas (Solo propias)",
+          "name": "Mis citas (solo propias)",
           "request": {
             "method": "GET",
             "header": [
@@ -192,8 +891,31 @@
                 "value": "Bearer {{pacienteToken}}"
               }
             ],
-            "url": "{{baseUrl}}/citas/mis-citas"
-          }
+            "url": {
+              "raw": "{{baseUrl}}/citas/mis-citas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "citas",
+                "mis-citas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 con token de Paciente', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('Devuelve un arreglo con citas', () => { pm.expect(j.data).to.be.an('array'); pm.expect(j.data.length).to.be.above(0); });",
+                  "pm.test('Todas las citas son del paciente autenticado', () => j.data.forEach(c => pm.expect(c.paciente.email).to.eql('paciente@piedraazul.com')));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -201,21 +923,7 @@
       "name": "5. Administrador",
       "item": [
         {
-          "name": "Listar Médicos (Admin)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.length > 0) {",
-                  "  pm.collectionVariables.set('medicoId', json.data[0].id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "name": "Listar médicos (admin)",
           "request": {
             "method": "GET",
             "header": [
@@ -224,11 +932,34 @@
                 "value": "Bearer {{adminToken}}"
               }
             ],
-            "url": "{{baseUrl}}/medicos/admin"
-          }
+            "url": {
+              "raw": "{{baseUrl}}/medicos/admin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "medicos",
+                "admin"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 con token de Administrador', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('Devuelve arreglo de médicos', () => pm.expect(j.data).to.be.an('array'));",
+                  "if (j.data.length > 0) pm.collectionVariables.set('medicoId', j.data[0].id);"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Registrar Médico (Admin)",
+          "name": "Registrar médico (admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -241,42 +972,51 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/medicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "medicos"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cedula\": \"1045901234\",\n  \"tarjetaProfesional\": \"TP-77881-COL\",\n  \"nombres\": \"Santiago\",\n  \"apellidos\": \"Mejía Restrepo\",\n  \"email\": \"s.mejia@piedraazul.com\",\n  \"telefono\": \"3123456789\",\n  \"especialidad\": \"Ortopedia\",\n  \"consultorio\": \"Consultorio 110 - Torre Azul\",\n  \"diasAtencion\": \"LUN,MAR,JUE,VIE\",\n  \"horaInicio\": \"08:00\",\n  \"horaFin\": \"16:00\"\n}"
-            },
-            "url": "{{baseUrl}}/medicos"
-          }
-        },
-        {
-          "name": "Listar Pacientes (Admin)",
+              "raw": "{\n  \"cedula\": \"{{cedulaNueva}}\",\n  \"tarjetaProfesional\": \"TP-{{sufijo}}-COL\",\n  \"nombres\": \"Santiago\",\n  \"apellidos\": \"Mejía Restrepo\",\n  \"email\": \"medico.{{sufijo}}@piedraazul.com\",\n  \"telefono\": \"3123456789\",\n  \"especialidad\": \"Ortopedia\",\n  \"consultorio\": \"Consultorio 110 - Torre Azul\",\n  \"diasAtencion\": \"LUN,MAR,JUE\",\n  \"horaInicio\": \"08:00\",\n  \"horaFin\": \"16:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const n = Date.now().toString();",
+                  "pm.collectionVariables.set('cedulaNueva', n.slice(-10));",
+                  "pm.collectionVariables.set('sufijo', n.slice(-8));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.length > 0) {",
-                  "  pm.collectionVariables.set('pacienteId', json.data[0].id);",
-                  "}"
-                ],
-                "type": "text/javascript"
+                  "pm.test('201 Médico creado', () => pm.response.to.have.status(201));",
+                  "pm.test('Devuelve el médico con id', () => pm.expect(pm.response.json().data).to.have.property('id'));"
+                ]
               }
             }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}"
-              }
-            ],
-            "url": "{{baseUrl}}/pacientes"
-          }
+          ]
         },
         {
-          "name": "Registrar Paciente (Admin)",
+          "name": "Registrar médico con datos inválidos -> 400",
           "request": {
             "method": "POST",
             "header": [
@@ -289,15 +1029,39 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/medicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "medicos"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"cedula\": \"1088223344\",\n  \"nombres\": \"Juliana\",\n  \"apellidos\": \"Castro Henao\",\n  \"fechaNacimiento\": \"1995-09-21\",\n  \"genero\": \"F\",\n  \"telefono\": \"3176543210\",\n  \"email\": \"juliana.castro@correo.com\",\n  \"direccion\": \"Calle 72 # 11-30\",\n  \"grupoSanguineo\": \"O+\"\n}"
-            },
-            "url": "{{baseUrl}}/pacientes"
-          }
+              "raw": "{\n  \"cedula\": \"1\",\n  \"nombres\": \"A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Datos inválidos deben dar 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Listar Todas las Citas (Admin)",
+          "name": "Listar pacientes (admin)",
           "request": {
             "method": "GET",
             "header": [
@@ -306,24 +1070,34 @@
                 "value": "Bearer {{adminToken}}"
               }
             ],
-            "url": "{{baseUrl}}/citas"
-          }
-        },
-        {
-          "name": "Registrar Cita Médica (Admin)",
+            "url": {
+              "raw": "{{baseUrl}}/pacientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes"
+              ]
+            }
+          },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Cita creada exitosamente (201)', () => {",
-                  "  pm.response.to.have.status(201);",
-                  "});"
-                ],
-                "type": "text/javascript"
+                  "pm.test('200 con token de Administrador', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('Devuelve arreglo de pacientes', () => pm.expect(j.data).to.be.an('array'));",
+                  "const p = j.data.find(x => x.email === 'paciente@piedraazul.com') || j.data[0];",
+                  "if (p) pm.collectionVariables.set('pacienteId', p.id);"
+                ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Registrar paciente (admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -336,12 +1110,261 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"fechaHora\": \"2026-11-25T10:00:00.000Z\",\n  \"duracionMinutos\": 30,\n  \"motivo\": \"Control general programado desde recepción.\"\n}"
+              "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"cedula\": \"{{cedulaNueva}}\",\n  \"nombres\": \"Juliana\",\n  \"apellidos\": \"Castro Henao\",\n  \"fechaNacimiento\": \"1995-09-21\",\n  \"genero\": \"F\",\n  \"telefono\": \"3176543210\",\n  \"email\": \"paciente.{{sufijo}}@correo.com\",\n  \"direccion\": \"Calle 72 # 11-30\",\n  \"grupoSanguineo\": \"O+\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const n = Date.now().toString();",
+                  "pm.collectionVariables.set('cedulaNueva', n.slice(-10));",
+                  "pm.collectionVariables.set('sufijo', n.slice(-8));"
+                ]
+              }
             },
-            "url": "{{baseUrl}}/citas"
-          }
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Paciente creado', () => pm.response.to.have.status(201));",
+                  "pm.test('Devuelve el paciente con id', () => pm.expect(pm.response.json().data).to.have.property('id'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar cédula recién registrada -> existe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes/verificar-cedula/{{cedulaNueva}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes",
+                "verificar-cedula",
+                "{{cedulaNueva}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('existe = true', () => pm.expect(pm.response.json().existe).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar paciente con cédula repetida -> 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"cedula\": \"1020304050\",\n  \"nombres\": \"Repetido\",\n  \"apellidos\": \"Prueba\",\n  \"fechaNacimiento\": \"1990-01-01\",\n  \"genero\": \"M\",\n  \"telefono\": \"3000000000\",\n  \"email\": \"repetido.{{$timestamp}}@correo.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cédula repetida debe dar 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar todas las citas (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/citas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 con token de Administrador', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('Devuelve arreglo de citas', () => pm.expect(j.data).to.be.an('array'));",
+                  "pm.test('Incluye citas de más de un paciente', () => pm.expect(new Set(j.data.map(c => c.pacienteId)).size).to.be.above(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear cita médica (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/citas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"fechaHora\": \"{{fechaCita}}\",\n  \"duracionMinutos\": 30,\n  \"motivo\": \"Control general programado desde recepción.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Fecha futura aleatoria (40 a 700 días) para evitar solapamientos al repetir la colección",
+                  "const d = new Date(); d.setUTCDate(d.getUTCDate() + 40 + Math.floor(Math.random() * 660));",
+                  "d.setUTCHours(10 + Math.floor(Math.random() * 6), 0, 0, 0);",
+                  "pm.collectionVariables.set('fechaCita', d.toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Cita creada', () => pm.response.to.have.status(201));",
+                  "pm.test('Devuelve la cita con id', () => pm.expect(pm.response.json().data).to.have.property('id'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear la misma cita (solapamiento) -> 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/citas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"fechaHora\": \"{{fechaCita}}\",\n  \"duracionMinutos\": 30,\n  \"motivo\": \"Cita duplicada para probar solapamiento.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Solapamiento debe dar 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

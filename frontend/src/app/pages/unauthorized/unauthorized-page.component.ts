@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { BadgeComponent } from '../../shared/atoms/badge/badge.component';
@@ -13,7 +13,7 @@ import { MainLayoutComponent } from '../../shared/templates/main-layout/main-lay
     <app-main-layout
       eyebrow="Control de Acceso · Código 403"
       pageTitle="Acceso No Autorizado para su Rol"
-      pageDescription="Su cuenta actual no cuenta con los permisos necesarios para abrir esta sección administrativa."
+      [pageDescription]="description()"
     >
       <section class="pa-status-card" role="alert">
         <div class="pa-status-card__code">⚠️ 403</div>
@@ -21,7 +21,11 @@ import { MainLayoutComponent } from '../../shared/templates/main-layout/main-lay
           variant="danger"
           [text]="'Rol actual en sesión: ' + (authService.currentRole() ?? 'Sin sesión')"
         />
-        <h2>Esta sección es exclusiva para el Administrador</h2>
+        @if (requiredRole(); as required) {
+          <h2>Esta sección es exclusiva para el {{ required }}</h2>
+        } @else {
+          <h2>Esta sección requiere una sesión activa</h2>
+        }
         <p>
           El sistema de seguridad (<code>roleGuard</code>) verificó su perfil y bloqueó el acceso
           para proteger la información hospitalaria. Puede regresar a su panel principal con el
@@ -89,6 +93,29 @@ import { MainLayoutComponent } from '../../shared/templates/main-layout/main-lay
 export class UnauthorizedPageComponent {
   readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+
+  /**
+   * Rol que sí puede ver la sección bloqueada. Con solo dos roles en la app,
+   * es el opuesto al rol de la sesión actual: si es Paciente, la sección era de
+   * Administrador, y viceversa.
+   */
+  readonly requiredRole = computed<string | null>(() => {
+    switch (this.authService.currentRole()) {
+      case 'Paciente':
+        return 'Administrador';
+      case 'Administrador':
+        return 'Paciente';
+      default:
+        return null;
+    }
+  });
+
+  readonly description = computed(() => {
+    const required = this.requiredRole();
+    return required
+      ? `Su cuenta actual no cuenta con los permisos necesarios para abrir esta sección, que es exclusiva del rol ${required}.`
+      : 'Debe iniciar sesión con una cuenta autorizada para abrir esta sección.';
+  });
 
   goToAuthorizedHome(): void {
     const role = this.authService.currentRole();

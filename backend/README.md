@@ -1,5 +1,9 @@
 # Clínica Piedra Azul — Backend API (Fase 1)
 
+
+prueba: npx newman run postman/ClinicaPiedraAzul.postman_collection.json
+
+
 API RESTful construida con **Node.js**, **Express**, **TypeScript**, **Prisma ORM** y **SQLite** para la gestión de médicos, pacientes y citas médicas con autenticación **JWT** y control de acceso basado en roles (**RBAC**: `Público`, `Paciente`, `Administrador`).
 
 ---

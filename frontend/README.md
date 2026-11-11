@@ -1,5 +1,30 @@
 # Clínica Piedra Azul — Frontend Angular (Fase 3)
 
+
+ng test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Aplicación web construida en **Angular (Standalone Components + SCSS)** bajo metodología **Atomic Design**, diseñada con enfoque de **Accesibilidad para Adultos Mayores (Tercera Edad)**:
 - **Paleta:** Azul Celeste Claro (`#F0F8FF` / `#E6F4FE`) y Blanco (`#FFFFFF`) para fondos y paneles, Azul Fuerte (`#0277BD` / `#035388`) para botones principales, y Azul Marino Oscuro (`#0B2545`) para textos de máximo contraste.
 - **Tipografía y Botones:** Fuente base de `18px–20px` y botones con área de clic mínima `>= 48x48px` (`min-height: 52px`).
