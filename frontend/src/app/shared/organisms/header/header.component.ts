@@ -72,13 +72,6 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
               >
                 Mis Citas Médicas
               </a>
-              <a
-                routerLink="/admin/medicos"
-                class="pa-header__link pa-header__link--guard-demo"
-                (click)="closeMobileMenu()"
-              >
-                Verificar Bloqueo Admin (/admin/medicos)
-              </a>
             }
           } @else {
             <a
@@ -173,12 +166,6 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
         background-color: var(--pa-blue-100);
         border-color: var(--pa-blue-600);
         color: var(--pa-blue-900);
-      }
-
-      .pa-header__link--guard-demo {
-        border: 2px dashed var(--pa-green-700);
-        background-color: var(--pa-green-50);
-        color: var(--pa-green-800);
       }
 
       .pa-header__session {

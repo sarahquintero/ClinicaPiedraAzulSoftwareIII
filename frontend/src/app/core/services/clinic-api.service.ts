@@ -11,6 +11,7 @@ import {
   MedicoApiItem,
   PacienteApiItem,
   VerificarCedulaResponse,
+  VerificarTarjetaResponse,
 } from '../models/clinic.models';
 
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -22,6 +23,13 @@ export class ClinicApiService {
   private readonly http = inject(HttpClient);
 
   // Médicos
+  verificarTarjeta(tarjeta: string): Observable<VerificarTarjetaResponse> {
+    const clean = encodeURIComponent(tarjeta.trim());
+    return this.http.get<VerificarTarjetaResponse>(
+      `${API_BASE_URL}/medicos/verificar-tarjeta/${clean}`
+    );
+  }
+
   getMedicosPublic(): Observable<ApiListResponse<MedicoApiItem>> {
     return this.http.get<ApiListResponse<MedicoApiItem>>(`${API_BASE_URL}/medicos`);
   }

@@ -30,15 +30,14 @@ import { MainLayoutComponent } from '../../shared/templates/main-layout/main-lay
       <div class="pa-login-centered">
         <section class="pa-form-card pa-login-box" aria-labelledby="login-title">
           <div class="pa-login-card__top">
-            <app-logo subtitle="Ingreso Seguro con JWT" />
+            <app-logo subtitle="Ingreso Seguro" />
             <app-badge variant="primary" text="Portal Oficial" />
           </div>
 
           <div class="pa-form-card__header">
             <h2 id="login-title">Iniciar Sesión en su Cuenta</h2>
             <p>
-              Escriba su correo electrónico y su contraseña. Todos los controles y textos están
-              diseñados en tamaño grande para su comodidad.
+              Escriba su correo electrónico y su contraseña.
             </p>
           </div>
 

@@ -34,6 +34,13 @@ export interface VerificarCedulaResponse {
   disponible: boolean;
 }
 
+export interface VerificarTarjetaResponse {
+  ok?: boolean;
+  tarjetaProfesional?: string;
+  existe?: boolean;
+  disponible: boolean;
+}
+
 export type BadgeVariant = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
 export interface TableColumn {

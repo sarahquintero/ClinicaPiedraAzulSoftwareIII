@@ -2,6 +2,14 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../../shared/utils/async-handler';
 import { medicosService } from './medicos.service';
 
+export const verificarTarjetaController = asyncHandler(async (req: Request, res: Response) => {
+  const resultado = await medicosService.verificarTarjeta(String(req.params.tarjeta ?? ''));
+  res.status(200).json({
+    ok: true,
+    ...resultado,
+  });
+});
+
 export const listMedicosPublicController = asyncHandler(async (req: Request, res: Response) => {
   const especialidadId =
     typeof req.query.especialidadId === 'string' ? req.query.especialidadId : undefined;

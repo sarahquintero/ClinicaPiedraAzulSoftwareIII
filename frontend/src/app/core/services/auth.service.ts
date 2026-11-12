@@ -24,6 +24,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly tokenSignal = signal<string | null>(this.readStoredToken());
+  private readonly pendingLoginTransition = signal<boolean>(false);
 
   readonly user = computed<SessionUser | null>(() => {
     const token = this.tokenSignal();
@@ -43,9 +44,18 @@ export class AuthService {
         tap((response) => {
           if (response.token) {
             this.setSessionFromToken(response.token);
+            this.pendingLoginTransition.set(true);
           }
         })
       );
+  }
+
+  consumeLoginTransition(): boolean {
+    if (this.pendingLoginTransition()) {
+      this.pendingLoginTransition.set(false);
+      return true;
+    }
+    return false;
   }
 
   getToken(): string | null {

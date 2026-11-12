@@ -40,6 +40,18 @@ describe('Clínica Piedra Azul — Fase 1 Backend (Auth JWT, RBAC y Endpoints Ba
       expect(libre.body.existe).toBe(false);
       expect(libre.body.disponible).toBe(true);
     });
+
+    it('GET /api/medicos/verificar-tarjeta/:tarjeta detecta tarjeta profesional ocupada y disponible', async () => {
+      const ocupada = await request(app).get('/api/medicos/verificar-tarjeta/TP-48291-COL');
+      expect(ocupada.status).toBe(200);
+      expect(ocupada.body.existe).toBe(true);
+      expect(ocupada.body.disponible).toBe(false);
+
+      const libre = await request(app).get(`/api/medicos/verificar-tarjeta/TP-${sufijoUnico}`);
+      expect(libre.status).toBe(200);
+      expect(libre.body.existe).toBe(false);
+      expect(libre.body.disponible).toBe(true);
+    });
   });
 
   describe('POST /api/auth/login y estructura del JWT', () => {
@@ -165,6 +177,13 @@ describe('Clínica Piedra Azul — Fase 1 Backend (Auth JWT, RBAC y Endpoints Ba
         .set('Authorization', `Bearer ${adminToken}`);
       expect(adminList.status).toBe(200);
       expect(adminList.body.data.some((m: { id: string }) => m.id === nuevoMedicoId)).toBe(true);
+
+      const checkTarjeta = await request(app).get(
+        `/api/medicos/verificar-tarjeta/TP-${sufijoUnico}`
+      );
+      expect(checkTarjeta.status).toBe(200);
+      expect(checkTarjeta.body.existe).toBe(true);
+      expect(checkTarjeta.body.disponible).toBe(false);
     });
 
     it('POST /api/pacientes y GET /api/pacientes registran y consultan pacientes', async () => {

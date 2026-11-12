@@ -1,4 +1,5 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit, inject, signal } from '@angular/core';
+import { AuthService } from '../../../core/services/auth.service';
 import { ToastComponent } from '../../atoms/toast/toast.component';
 import { FooterComponent } from '../../organisms/footer/footer.component';
 import { HeaderComponent } from '../../organisms/header/header.component';
@@ -8,7 +9,16 @@ import { HeaderComponent } from '../../organisms/header/header.component';
   standalone: true,
   imports: [HeaderComponent, FooterComponent, ToastComponent],
   template: `
-    <div class="pa-layout">
+    @if (isLoginTransition()) {
+      <div class="pa-login-screen-curtain" aria-hidden="true">
+        <div class="pa-login-screen-curtain__pill">
+          <span class="pa-login-screen-curtain__icon">✓</span>
+          <span>Ingreso verificado · Abriendo su portal clínico...</span>
+        </div>
+      </div>
+    }
+
+    <div class="pa-layout" [class.pa-layout--login-enter]="isLoginTransition()">
       <app-toast />
       <app-header />
 
@@ -47,6 +57,65 @@ import { HeaderComponent } from '../../organisms/header/header.component';
         display: grid;
         grid-template-rows: auto auto 1fr auto;
         background-color: var(--pa-bg);
+      }
+
+      /* Animación llamativa de pantalla completa al ingresar desde el Login */
+      .pa-layout--login-enter {
+        animation: paLoginPortalEnter 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        transform-origin: center top;
+      }
+
+      .pa-layout--login-enter .pa-layout__hero {
+        animation: paLoginHeroSlideUp 720ms 90ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      .pa-layout--login-enter .pa-layout__main {
+        animation: paLoginContentZoomUp 820ms 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      .pa-login-screen-curtain {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(
+          circle at center,
+          rgba(225, 245, 254, 0.92) 0%,
+          rgba(2, 119, 189, 0.24) 65%,
+          rgba(11, 37, 69, 0.12) 100%
+        );
+        animation: paLoginCurtainFadeOut 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+
+      .pa-login-screen-curtain__pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding: 1.1rem 2rem;
+        border-radius: 999px;
+        background-color: var(--pa-white);
+        border: 3px solid var(--pa-blue-700);
+        box-shadow: var(--pa-shadow-lg);
+        color: var(--pa-blue-900);
+        font-size: 1.25rem;
+        font-weight: 800;
+        animation: paLoginPillPop 850ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      .pa-login-screen-curtain__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: var(--pa-blue-700);
+        color: var(--pa-white);
+        font-size: 1.15rem;
+        font-weight: 900;
       }
 
       /* Cabecera en Azul Celeste Claro y Blanco con texto Azul Marino de alto contraste */
@@ -130,8 +199,21 @@ import { HeaderComponent } from '../../organisms/header/header.component';
     `,
   ],
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+
   @Input() eyebrow = '';
   @Input() pageTitle = '';
   @Input() pageDescription = '';
+
+  readonly isLoginTransition = signal(false);
+
+  ngOnInit(): void {
+    if (this.authService.consumeLoginTransition()) {
+      this.isLoginTransition.set(true);
+      setTimeout(() => {
+        this.isLoginTransition.set(false);
+      }, 950);
+    }
+  }
 }

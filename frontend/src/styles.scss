@@ -229,6 +229,77 @@ textarea.pa-form-control {
   resize: vertical;
 }
 
+/* ==========================================================================
+   Estilos Accesibles para Calendarios y Selectores de Fecha/Hora Nativos
+   Agrandan el área de clic, los segmentos editables y el ícono desplegable
+   ========================================================================== */
+
+input[type='date'].pa-form-control,
+input[type='datetime-local'].pa-form-control,
+input[type='time'].pa-form-control,
+.pa-form-control--date {
+  min-height: 60px;
+  padding: 0.8rem 1.15rem;
+  font-size: 1.18rem; /* ~21.2px para lectura fácil de día/mes/año */
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  color-scheme: light;
+  background-color: var(--pa-white);
+
+  &:hover {
+    border-color: var(--pa-blue-700);
+    background-color: var(--pa-blue-50);
+  }
+
+  &::-webkit-datetime-edit {
+    padding: 0.2rem 0.15rem;
+  }
+
+  &::-webkit-datetime-edit-fields-wrapper {
+    padding: 0.15rem 0.25rem;
+  }
+
+  &::-webkit-datetime-edit-day-field,
+  &::-webkit-datetime-edit-month-field,
+  &::-webkit-datetime-edit-year-field,
+  &::-webkit-datetime-edit-hour-field,
+  &::-webkit-datetime-edit-minute-field,
+  &::-webkit-datetime-edit-ampm-field {
+    padding: 0.2rem 0.35rem;
+    border-radius: 6px;
+    font-weight: 700;
+
+    &:focus {
+      background-color: var(--pa-blue-700);
+      color: var(--pa-white);
+      outline: none;
+    }
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    width: 34px;
+    height: 34px;
+    padding: 6px;
+    margin-left: 0.5rem;
+    border-radius: 8px;
+    background-color: var(--pa-surface-alt);
+    border: 2px solid var(--pa-border-strong);
+    cursor: pointer;
+    transform: scale(1.22);
+    transition:
+      background-color var(--pa-transition),
+      transform var(--pa-transition),
+      border-color var(--pa-transition);
+
+    &:hover {
+      background-color: var(--pa-blue-200);
+      border-color: var(--pa-blue-800);
+      transform: scale(1.32);
+    }
+  }
+}
+
 .pa-form-hint {
   font-size: 0.98rem;
   color: var(--pa-text-muted);
@@ -316,6 +387,80 @@ textarea.pa-form-control {
 
 .pa-page-animate {
   animation: paPageEnter 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ==========================================================================
+   Keyframes de Transición de Pantalla Completa post-Login hacia el Dashboard
+   (Fade-in + Zoom suave + Slide de abajo hacia arriba)
+   ========================================================================== */
+
+@keyframes paLoginPortalEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(42px) scale(0.94);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes paLoginHeroSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes paLoginContentZoomUp {
+  0% {
+    opacity: 0;
+    transform: translateY(48px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes paLoginCurtainFadeOut {
+  0% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes paLoginPillPop {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.88);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.96);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,13 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, EventEmitter, Output, inject, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Output, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
+  AsyncValidatorFn,
   FormBuilder,
   ReactiveFormsModule,
   ValidationErrors,
   ValidatorFn,
   Validators,
 } from '@angular/forms';
+import { NEVER, Observable, catchError, concat, debounceTime, map, of, switchMap, take, tap } from 'rxjs';
 import { ClinicApiService } from '../../../core/services/clinic-api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../atoms/button/button.component';
@@ -20,6 +23,35 @@ const horarioLaboralValidator: ValidatorFn = (group: AbstractControl): Validatio
   }
   return null;
 };
+
+/**
+ * Validador asíncrono reactivo para el campo `tarjetaProfesional`:
+ * Consume GET /api/medicos/verificar-tarjeta/:tarjeta usando debounceTime(500) y switchMap.
+ * Si la tarjeta ya está registrada (disponible === false), retorna { tarjetaYaRegistrada: true }.
+ */
+export function tarjetaUnicaAsyncValidator(
+  clinicApi: ClinicApiService,
+  cdr: ChangeDetectorRef
+): AsyncValidatorFn {
+  return (control: AbstractControl): Observable<ValidationErrors | null> => {
+    const tarjeta = String(control.value ?? '').trim();
+    if (!tarjeta || tarjeta.length < 4) {
+      return of(null);
+    }
+
+    return concat(of(tarjeta), NEVER).pipe(
+      debounceTime(500),
+      take(1),
+      switchMap((valorTarjeta) =>
+        clinicApi.verificarTarjeta(valorTarjeta).pipe(
+          map((res) => (res.disponible === false ? { tarjetaYaRegistrada: true } : null)),
+          catchError(() => of(null)),
+          tap(() => cdr.markForCheck())
+        )
+      )
+    );
+  };
+}
 
 @Component({
   selector: 'app-medico-form',
@@ -65,7 +97,7 @@ const horarioLaboralValidator: ValidatorFn = (group: AbstractControl): Validatio
             }
           </div>
 
-          <!-- Tarjeta Profesional -->
+          <!-- Tarjeta Profesional con Validación Asíncrona Reactiva -->
           <div class="pa-form-field">
             <label class="pa-form-label" for="med-tp">
               Tarjeta Profesional <span class="pa-form-req">*</span>
@@ -74,11 +106,21 @@ const horarioLaboralValidator: ValidatorFn = (group: AbstractControl): Validatio
               id="med-tp"
               type="text"
               class="pa-form-control"
-              [class.pa-form-control--invalid]="isInvalid('tarjetaProfesional')"
+              [class.pa-form-control--invalid]="isTarjetaInvalid()"
               formControlName="tarjetaProfesional"
               placeholder="Ej. TP-77881-COL"
             />
-            @if (isInvalid('tarjetaProfesional')) {
+            @if (tarjetaStatus() === 'PENDING' || form.controls.tarjetaProfesional.pending) {
+              <div class="pa-form-pending" aria-live="polite">
+                ⏳ Verificando disponibilidad de la tarjeta profesional...
+              </div>
+            }
+            @if (form.controls.tarjetaProfesional.hasError('tarjetaYaRegistrada')) {
+              <div class="pa-form-error" role="alert">
+                <span class="pa-form-error__icon" aria-hidden="true">⚠️</span>
+                <span>Esta tarjeta profesional ya está registrada</span>
+              </div>
+            } @else if (isInvalid('tarjetaProfesional')) {
               <div class="pa-form-error" role="alert">
                 <span class="pa-form-error__icon" aria-hidden="true">⚠️</span>
                 <span>La tarjeta profesional es obligatoria (mínimo 4 caracteres).</span>
@@ -279,7 +321,7 @@ const horarioLaboralValidator: ValidatorFn = (group: AbstractControl): Validatio
             [label]="submitting() ? 'Guardando Médico...' : 'Guardar Nuevo Médico'"
             variant="secondary"
             type="submit"
-            [disabled]="submitting()"
+            [disabled]="submitting() || form.pending"
           />
         </div>
       </form>
@@ -290,6 +332,7 @@ export class MedicoFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly clinicApi = inject(ClinicApiService);
   private readonly toastService = inject(ToastService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Output() medicoCreated = new EventEmitter<void>();
 
@@ -300,7 +343,13 @@ export class MedicoFormComponent {
   readonly form = this.fb.nonNullable.group(
     {
       cedula: ['', [Validators.required, Validators.pattern(/^[0-9A-Za-z-]{5,20}$/)]],
-      tarjetaProfesional: ['', [Validators.required, Validators.minLength(4)]],
+      tarjetaProfesional: [
+        '',
+        {
+          validators: [Validators.required, Validators.minLength(4)],
+          asyncValidators: [tarjetaUnicaAsyncValidator(this.clinicApi, this.cdr)],
+        },
+      ],
       nombres: ['', [Validators.required, Validators.minLength(2)]],
       apellidos: ['', [Validators.required, Validators.minLength(2)]],
       especialidad: ['', [Validators.required, Validators.minLength(3)]],
@@ -314,6 +363,15 @@ export class MedicoFormComponent {
     { validators: [horarioLaboralValidator] }
   );
 
+  readonly tarjetaStatus = toSignal(this.form.controls.tarjetaProfesional.statusChanges, {
+    initialValue: 'INVALID',
+  });
+
+  isTarjetaInvalid(): boolean {
+    const c = this.form.controls.tarjetaProfesional;
+    return c.hasError('tarjetaYaRegistrada') || (c.invalid && (c.touched || this.submitted()));
+  }
+
   isInvalid(controlName: string): boolean {
     const control = this.form.get(controlName);
     return Boolean(control && control.invalid && (control.touched || this.submitted()));
@@ -323,7 +381,7 @@ export class MedicoFormComponent {
     this.submitted.set(true);
     this.backendError.set('');
 
-    if (this.form.invalid) {
+    if (this.form.invalid || this.form.pending) {
       this.form.markAllAsTouched();
       return;
     }

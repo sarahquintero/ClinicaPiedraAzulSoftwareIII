@@ -180,9 +180,10 @@ export function cedulaUnicaAsyncValidator(
             <input
               id="pac-nacimiento"
               type="date"
-              class="pa-form-control"
+              class="pa-form-control pa-form-control--date"
               [class.pa-form-control--invalid]="isInvalid('fechaNacimiento')"
               formControlName="fechaNacimiento"
+              (click)="openNativePicker($event)"
             />
             @if (isInvalid('fechaNacimiento')) {
               <div class="pa-form-error" role="alert">
@@ -200,12 +201,20 @@ export function cedulaUnicaAsyncValidator(
             <select
               id="pac-genero"
               class="pa-form-control"
+              [class.pa-form-control--invalid]="isInvalid('genero')"
               formControlName="genero"
             >
+              <option value="" disabled>-- Seleccione --</option>
               <option value="F">Femenino (F)</option>
               <option value="M">Masculino (M)</option>
               <option value="OTRO">Otro</option>
             </select>
+            @if (isInvalid('genero')) {
+              <div class="pa-form-error" role="alert">
+                <span class="pa-form-error__icon" aria-hidden="true">⚠️</span>
+                <span>Debe seleccionar el género del paciente.</span>
+              </div>
+            }
           </div>
 
           <!-- Teléfono -->
@@ -253,13 +262,15 @@ export function cedulaUnicaAsyncValidator(
           <!-- Grupo Sanguíneo -->
           <div class="pa-form-field">
             <label class="pa-form-label" for="pac-rh">
-              Grupo Sanguíneo y RH
+              Grupo Sanguíneo y RH <span class="pa-form-req">*</span>
             </label>
             <select
               id="pac-rh"
               class="pa-form-control"
+              [class.pa-form-control--invalid]="isInvalid('grupoSanguineo')"
               formControlName="grupoSanguineo"
             >
+              <option value="" disabled>-- Seleccione --</option>
               <option value="O+">O Positivo (O+)</option>
               <option value="O-">O Negativo (O-)</option>
               <option value="A+">A Positivo (A+)</option>
@@ -269,6 +280,12 @@ export function cedulaUnicaAsyncValidator(
               <option value="AB+">AB Positivo (AB+)</option>
               <option value="AB-">AB Negativo (AB-)</option>
             </select>
+            @if (isInvalid('grupoSanguineo')) {
+              <div class="pa-form-error" role="alert">
+                <span class="pa-form-error__icon" aria-hidden="true">⚠️</span>
+                <span>Debe seleccionar el grupo sanguíneo y RH del paciente.</span>
+              </div>
+            }
           </div>
 
           <!-- Dirección -->
@@ -327,17 +344,28 @@ export class PacienteFormComponent {
     ],
     nombres: ['', [Validators.required, Validators.minLength(2)]],
     apellidos: ['', [Validators.required, Validators.minLength(2)]],
-    fechaNacimiento: ['1952-05-14', [Validators.required, fechaNoFuturaValidator]],
-    genero: ['F' as CreatePacientePayload['genero'], [Validators.required]],
+    fechaNacimiento: ['', [Validators.required, fechaNoFuturaValidator]],
+    genero: ['' as CreatePacientePayload['genero'] | '', [Validators.required]],
     telefono: ['', [Validators.required, Validators.minLength(7), Validators.maxLength(20)]],
     email: ['', [Validators.required, Validators.email]],
-    grupoSanguineo: ['O+'],
+    grupoSanguineo: ['', [Validators.required]],
     direccion: [''],
   });
 
   readonly cedulaStatus = toSignal(this.form.controls.cedula.statusChanges, {
     initialValue: 'INVALID',
   });
+
+  openNativePicker(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    if (input && typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+      } catch {
+        // Algunos navegadores ignoran showPicker si ya está abierto
+      }
+    }
+  }
 
   isCedulaInvalid(): boolean {
     const c = this.form.controls.cedula;
@@ -366,7 +394,7 @@ export class PacienteFormComponent {
       nombres: raw.nombres.trim(),
       apellidos: raw.apellidos.trim(),
       fechaNacimiento: raw.fechaNacimiento,
-      genero: raw.genero,
+      genero: raw.genero as CreatePacientePayload['genero'],
       telefono: raw.telefono.trim(),
       email: raw.email.trim(),
       grupoSanguineo: raw.grupoSanguineo || undefined,
@@ -400,11 +428,11 @@ export class PacienteFormComponent {
       cedula: '',
       nombres: '',
       apellidos: '',
-      fechaNacimiento: '1952-05-14',
-      genero: 'F',
+      fechaNacimiento: '',
+      genero: '',
       telefono: '',
       email: '',
-      grupoSanguineo: 'O+',
+      grupoSanguineo: '',
       direccion: '',
     });
   }

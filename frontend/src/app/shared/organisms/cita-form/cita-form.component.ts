@@ -116,9 +116,10 @@ const fechaFuturaValidator: ValidatorFn = (control: AbstractControl): Validation
             <input
               id="cita-fecha-hora"
               type="datetime-local"
-              class="pa-form-control"
+              class="pa-form-control pa-form-control--date"
               [class.pa-form-control--invalid]="isInvalid('fechaHora')"
               formControlName="fechaHora"
+              (click)="openNativePicker($event)"
             />
             @if (isInvalid('fechaHora')) {
               <div class="pa-form-error" role="alert">
@@ -224,6 +225,17 @@ export class CitaFormComponent {
   isInvalid(controlName: string): boolean {
     const control = this.form.get(controlName);
     return Boolean(control && control.invalid && (control.touched || this.submitted()));
+  }
+
+  openNativePicker(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    if (input && typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+      } catch {
+        // Ignorar si ya está abierto
+      }
+    }
   }
 
   onSubmit(): void {

@@ -3,6 +3,27 @@ import { AppError } from '../../shared/errors/app-error';
 import { CreateMedicoDto } from './medicos.schemas';
 
 export class MedicosService {
+  async verificarTarjeta(tarjeta: string) {
+    const tarjetaNormalized = tarjeta.trim();
+    if (!tarjetaNormalized) {
+      throw AppError.badRequest(
+        'Debe proporcionar un número de tarjeta profesional para verificar.'
+      );
+    }
+
+    const medico = await prisma.medico.findUnique({
+      where: { tarjetaProfesional: tarjetaNormalized },
+      select: { id: true },
+    });
+
+    const existe = Boolean(medico);
+    return {
+      tarjetaProfesional: tarjetaNormalized,
+      existe,
+      disponible: !existe,
+    };
+  }
+
   async listPublic(filters?: { especialidadId?: string; especialidad?: string }) {
     const medicos = await prisma.medico.findMany({
       where: {
