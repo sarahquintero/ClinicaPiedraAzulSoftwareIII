@@ -48,6 +48,7 @@ export interface TableColumn {
   label: string;
   type?: 'text' | 'badge';
   badgeMap?: Record<string, BadgeVariant>;
+  hide?: 'tablet' | 'mobile';
 }
 
 export interface MedicoApiItem {

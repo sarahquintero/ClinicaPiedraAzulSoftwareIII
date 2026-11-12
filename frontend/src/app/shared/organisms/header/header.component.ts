@@ -11,6 +11,20 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
   imports: [RouterLink, RouterLinkActive, LogoComponent, BadgeComponent, ButtonComponent],
   template: `
     <header class="pa-header">
+      <div class="pa-header__topbar">
+        <div class="pa-header__topbar-inner">
+          @if (authService.user(); as user) {
+            <span class="pa-header__user-name">{{ user.nombre }}</span>
+            <app-badge
+              [variant]="user.role === 'Administrador' ? 'primary' : 'success'"
+              [text]="'Rol: ' + user.role"
+            />
+          } @else {
+            <app-badge variant="neutral" text="Acceso Público" />
+          }
+        </div>
+      </div>
+
       <div class="pa-header__container">
         <a routerLink="/" class="pa-header__brand">
           <app-logo subtitle="Portal de Atención Senior" />
@@ -26,42 +40,44 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
         </button>
 
         <nav class="pa-header__nav" [class.pa-header__nav--open]="mobileMenuOpen()">
-          @if (authService.isAuthenticated()) {
-            @if (authService.currentRole() === 'Administrador') {
-              <a
-                routerLink="/admin"
-                routerLinkActive="pa-header__link--active"
-                [routerLinkActiveOptions]="{ exact: true }"
-                class="pa-header__link"
-                (click)="closeMobileMenu()"
-              >
-                Panel General
-              </a>
-              <a
-                routerLink="/admin/medicos"
-                routerLinkActive="pa-header__link--active"
-                class="pa-header__link"
-                (click)="closeMobileMenu()"
-              >
-                Médicos
-              </a>
-              <a
-                routerLink="/admin/pacientes"
-                routerLinkActive="pa-header__link--active"
-                class="pa-header__link"
-                (click)="closeMobileMenu()"
-              >
-                Pacientes
-              </a>
-              <a
-                routerLink="/admin/citas"
-                routerLinkActive="pa-header__link--active"
-                class="pa-header__link"
-                (click)="closeMobileMenu()"
-              >
-                Citas Médicas
-              </a>
-            }
+          <!-- Enlaces del rol + botón de salir, juntos en la esquina derecha -->
+          <div class="pa-header__actions">
+            @if (authService.isAuthenticated()) {
+              @if (authService.currentRole() === 'Administrador') {
+                <a
+                  routerLink="/admin"
+                  routerLinkActive="pa-header__link--active"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  class="pa-header__link"
+                  (click)="closeMobileMenu()"
+                >
+                  Panel General
+                </a>
+                <a
+                  routerLink="/admin/medicos"
+                  routerLinkActive="pa-header__link--active"
+                  class="pa-header__link"
+                  (click)="closeMobileMenu()"
+                >
+                  Médicos
+                </a>
+                <a
+                  routerLink="/admin/pacientes"
+                  routerLinkActive="pa-header__link--active"
+                  class="pa-header__link"
+                  (click)="closeMobileMenu()"
+                >
+                  Pacientes
+                </a>
+                <a
+                  routerLink="/admin/citas"
+                  routerLinkActive="pa-header__link--active"
+                  class="pa-header__link"
+                  (click)="closeMobileMenu()"
+                >
+                  Citas Médicas
+                </a>
+              }
 
             @if (authService.currentRole() === 'Paciente') {
               <a
@@ -71,6 +87,13 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
                 (click)="closeMobileMenu()"
               >
                 Mis Citas Médicas
+              </a>
+              <a
+                routerLink="/admin/medicos"
+                class="pa-header__link pa-header__link--guard-demo"
+                (click)="closeMobileMenu()"
+              >
+                Verificar Bloqueo Admin (/admin/medicos)
               </a>
             }
           } @else {
@@ -84,23 +107,13 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
             </a>
           }
 
-          <div class="pa-header__session">
-            @if (authService.user(); as user) {
-              <div class="pa-header__user-info">
-                <span class="pa-header__user-name">{{ user.nombre }}</span>
-                <app-badge
-                  [variant]="user.role === 'Administrador' ? 'primary' : 'success'"
-                  [text]="'Rol: ' + user.role"
-                />
-              </div>
+            @if (authService.user()) {
               <app-button
                 label="Salir de la Cuenta"
                 variant="outline"
                 size="sm"
                 (clicked)="onLogout()"
               />
-            } @else {
-              <app-badge variant="neutral" text="Acceso Público" />
             }
           </div>
         </nav>
@@ -135,6 +148,17 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
       .pa-header__nav {
         display: flex;
         align-items: center;
+        justify-content: flex-end;
+        gap: 1.25rem;
+        flex-wrap: wrap;
+        margin-left: auto;
+      }
+
+      /* Enlaces del rol + botón "Salir de la Cuenta", alineados juntos a la derecha */
+      .pa-header__actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
         gap: 0.65rem;
         flex-wrap: wrap;
       }
@@ -168,24 +192,25 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
         color: var(--pa-blue-900);
       }
 
-      .pa-header__session {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-left: 0.5rem;
-        padding-left: 1rem;
-        border-left: 2px solid var(--pa-border);
+      .pa-header__link--guard-demo {
+        border: 2px dashed var(--pa-green-700);
+        background-color: var(--pa-green-50);
+        color: var(--pa-green-800);
       }
 
-      .pa-header__user-info {
+      .pa-header__topbar-inner {
+        max-width: 1360px;
+        margin: 0 auto;
+        padding: 0.4rem 1.5rem;
         display: flex;
         align-items: center;
-        gap: 0.65rem;
+        justify-content: flex-end;
+        gap: 0.75rem;
         flex-wrap: wrap;
       }
 
       .pa-header__user-name {
-        font-size: 1.05rem;
+        font-size: 0.98rem;
         font-weight: 800;
         color: var(--pa-blue-900);
       }
@@ -228,14 +253,9 @@ import { LogoComponent } from '../../atoms/logo/logo.component';
           flex-wrap: wrap;
         }
 
-        .pa-header__session {
-          margin-left: 0;
-          padding-left: 0;
-          padding-top: 1rem;
-          border-left: none;
-          border-top: 2px solid var(--pa-border);
-          justify-content: space-between;
-          flex-wrap: wrap;
+        .pa-header__actions {
+          flex-direction: column;
+          align-items: stretch;
         }
       }
     `,

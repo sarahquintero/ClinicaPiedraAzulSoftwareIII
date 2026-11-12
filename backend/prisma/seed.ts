@@ -11,7 +11,7 @@ function buildFutureDate(daysAhead: number, hourUtcOffset5: number, minute = 0):
 }
 
 async function main() {
-  console.log('🌱 Iniciando seed de Clínica Piedra Azul...');
+  console.log('Iniciando seed de Clínica Piedra Azul...');
 
   // Limpieza idempotente respetando integridad referencial
   await prisma.cita.deleteMany();
@@ -126,6 +126,7 @@ async function main() {
     bcrypt.hash('Paciente123*', 10),
   ]);
 
+  
   const adminUser = await prisma.usuario.create({
     data: {
       nombre: 'Dirección Médica - Admin',
