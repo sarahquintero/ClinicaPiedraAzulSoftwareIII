@@ -1,6 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectorRef, Component, EventEmitter, Output, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  EventEmitter,
+  HostListener,
+  Output,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
   AsyncValidatorFn,
@@ -16,15 +26,73 @@ import { ClinicApiService } from '../../../core/services/clinic-api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../atoms/button/button.component';
 
-const fechaNoFuturaValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
-  const val = control.value as string;
+function parseDdMmYyyy(value: string): Date | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+
+  if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return null;
+  }
+  return parsed;
+}
+
+function formatDateToDdMmYyyy(date: Date): string {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear());
+  return `${day}/${month}/${year}`;
+}
+
+function convertDdMmYyyyToIso(value: string): string {
+  const parsed = parseDdMmYyyy(value);
+  if (!parsed) {
+    return value;
+  }
+  const day = String(parsed.getDate()).padStart(2, '0');
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const year = String(parsed.getFullYear());
+  return `${year}-${month}-${day}`;
+}
+
+const fechaDdMmYyyyNoFuturaValidator: ValidatorFn = (
+  control: AbstractControl
+): ValidationErrors | null => {
+  const val = String(control.value ?? '').trim();
   if (!val) {
     return null;
   }
-  const parsed = new Date(val);
-  if (Number.isNaN(parsed.getTime()) || parsed > new Date()) {
+
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+    return { formatoFechaInvalido: true };
+  }
+
+  const parsed = parseDdMmYyyy(val);
+  if (!parsed) {
+    return { fechaInvalida: true };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  parsed.setHours(0, 0, 0, 0);
+
+  if (parsed > today) {
     return { fechaFutura: true };
   }
+
   return null;
 };
 
@@ -78,33 +146,45 @@ export function cedulaUnicaAsyncValidator(
         </div>
       }
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" autocomplete="on" novalidate>
         <div class="pa-form-grid">
           <!-- Tipo de Documento -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-tipo-doc">
+            <label class="pa-form-label" for="tipoDocumento">
               Tipo de Documento <span class="pa-form-req">*</span>
             </label>
             <select
-              id="pac-tipo-doc"
+              id="tipoDocumento"
+              name="tipoDocumento"
+              autocomplete="on"
               class="pa-form-control"
+              [class.pa-form-control--invalid]="isInvalid('tipoDocumento')"
               formControlName="tipoDocumento"
             >
+              <option value="" disabled>-- Seleccione --</option>
               <option value="CC">Cédula de Ciudadanía (CC)</option>
               <option value="CE">Cédula de Extranjería (CE)</option>
               <option value="TI">Tarjeta de Identidad (TI)</option>
               <option value="PASAPORTE">Pasaporte</option>
             </select>
+            @if (isInvalid('tipoDocumento')) {
+              <div class="pa-form-error" role="alert">
+                <span class="pa-form-error__icon" aria-hidden="true">⚠️</span>
+                <span>Debe seleccionar el tipo de documento del paciente.</span>
+              </div>
+            }
           </div>
 
           <!-- Cédula con Validación Asíncrona Reactiva -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-cedula">
+            <label class="pa-form-label" for="pacienteCedula">
               Número de Cédula / Documento <span class="pa-form-req">*</span>
             </label>
             <input
-              id="pac-cedula"
+              id="pacienteCedula"
+              name="cedula"
               type="text"
+              autocomplete="on"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isCedulaInvalid()"
               formControlName="cedula"
@@ -117,7 +197,7 @@ export function cedulaUnicaAsyncValidator(
               </div>
             }
 
-            @if (form.controls.cedula.hasError('cedulaYaRegistrada')) {
+            @if (cedulaYaRegistrada()) {
               <div class="pa-form-error" role="alert">
                 <span class="pa-form-error__icon" aria-hidden="true">⚠️</span>
                 <span>Cédula ya registrada</span>
@@ -132,12 +212,14 @@ export function cedulaUnicaAsyncValidator(
 
           <!-- Nombres -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-nombres">
+            <label class="pa-form-label" for="pacienteNombres">
               Nombres del Paciente <span class="pa-form-req">*</span>
             </label>
             <input
-              id="pac-nombres"
+              id="pacienteNombres"
+              name="nombres"
               type="text"
+              autocomplete="given-name"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('nombres')"
               formControlName="nombres"
@@ -153,12 +235,14 @@ export function cedulaUnicaAsyncValidator(
 
           <!-- Apellidos -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-apellidos">
+            <label class="pa-form-label" for="pacienteApellidos">
               Apellidos del Paciente <span class="pa-form-req">*</span>
             </label>
             <input
-              id="pac-apellidos"
+              id="pacienteApellidos"
+              name="apellidos"
               type="text"
+              autocomplete="family-name"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('apellidos')"
               formControlName="apellidos"
@@ -172,34 +256,68 @@ export function cedulaUnicaAsyncValidator(
             }
           </div>
 
-          <!-- Fecha de Nacimiento -->
+          <!-- Fecha de Nacimiento Manual (dd/mm/aaaa) + Botón de Calendario Modal Grande -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-nacimiento">
-              Fecha de Nacimiento <span class="pa-form-req">*</span>
+            <label class="pa-form-label" for="fechaNacimiento">
+              Fecha de Nacimiento (dd/mm/aaaa) <span class="pa-form-req">*</span>
             </label>
-            <input
-              id="pac-nacimiento"
-              type="date"
-              class="pa-form-control pa-form-control--date"
-              [class.pa-form-control--invalid]="isInvalid('fechaNacimiento')"
-              formControlName="fechaNacimiento"
-              (click)="openNativePicker($event)"
-            />
+            <div class="pa-date-input-group">
+              <input
+                id="fechaNacimiento"
+                name="fechaNacimiento"
+                type="text"
+                inputmode="numeric"
+                maxlength="10"
+                autocomplete="bday"
+                class="pa-form-control pa-date-input-group__input"
+                [class.pa-form-control--invalid]="isInvalid('fechaNacimiento')"
+                formControlName="fechaNacimiento"
+                placeholder="dd/mm/aaaa (Ej. 14/05/1952)"
+                (input)="onFechaInput($event)"
+              />
+              <button
+                type="button"
+                class="pa-calendar-trigger-btn"
+                (click)="openCalendarModal()"
+                aria-label="Abrir calendario grande para seleccionar fecha de nacimiento"
+                title="Abrir calendario"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="26"
+                  height="26"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </button>
+            </div>
             @if (isInvalid('fechaNacimiento')) {
               <div class="pa-form-error" role="alert">
                 <span class="pa-form-error__icon" aria-hidden="true">⚠️</span>
-                <span>Seleccione una fecha de nacimiento válida (no puede ser futura).</span>
+                <span>{{ getFechaErrorMessage() }}</span>
               </div>
             }
           </div>
 
           <!-- Género -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-genero">
+            <label class="pa-form-label" for="genero">
               Género <span class="pa-form-req">*</span>
             </label>
             <select
-              id="pac-genero"
+              id="genero"
+              name="genero"
+              autocomplete="sex"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('genero')"
               formControlName="genero"
@@ -219,12 +337,14 @@ export function cedulaUnicaAsyncValidator(
 
           <!-- Teléfono -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-telefono">
+            <label class="pa-form-label" for="pacienteTelefono">
               Teléfono o Celular <span class="pa-form-req">*</span>
             </label>
             <input
-              id="pac-telefono"
+              id="pacienteTelefono"
+              name="telefono"
               type="tel"
+              autocomplete="tel"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('telefono')"
               formControlName="telefono"
@@ -240,12 +360,14 @@ export function cedulaUnicaAsyncValidator(
 
           <!-- Correo Electrónico -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-email">
+            <label class="pa-form-label" for="pacienteEmail">
               Correo Electrónico <span class="pa-form-req">*</span>
             </label>
             <input
-              id="pac-email"
+              id="pacienteEmail"
+              name="email"
               type="email"
+              autocomplete="email"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('email')"
               formControlName="email"
@@ -261,11 +383,13 @@ export function cedulaUnicaAsyncValidator(
 
           <!-- Grupo Sanguíneo -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-rh">
+            <label class="pa-form-label" for="grupoSanguineo">
               Grupo Sanguíneo y RH <span class="pa-form-req">*</span>
             </label>
             <select
-              id="pac-rh"
+              id="grupoSanguineo"
+              name="grupoSanguineo"
+              autocomplete="on"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('grupoSanguineo')"
               formControlName="grupoSanguineo"
@@ -290,12 +414,14 @@ export function cedulaUnicaAsyncValidator(
 
           <!-- Dirección -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="pac-direccion">
+            <label class="pa-form-label" for="direccion">
               Dirección de Residencia
             </label>
             <input
-              id="pac-direccion"
+              id="direccion"
+              name="direccion"
               type="text"
+              autocomplete="street-address"
               class="pa-form-control"
               formControlName="direccion"
               placeholder="Ej. Calle 85 # 14-20, Bogotá"
@@ -319,6 +445,113 @@ export function cedulaUnicaAsyncValidator(
         </div>
       </form>
     </section>
+
+    <!-- Modal Grande Accesible para Selección de Fecha de Nacimiento -->
+    @if (calendarModalOpen()) {
+      <div
+        class="pa-calendar-modal-backdrop"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="calendar-modal-title"
+        (click)="onBackdropClick($event)"
+      >
+        <div class="pa-calendar-modal">
+          <header class="pa-calendar-modal__header">
+            <div>
+              <h3 id="calendar-modal-title">Seleccionar Fecha de Nacimiento</h3>
+              <p>Elija el año, el mes y el día en el calendario</p>
+            </div>
+            <button
+              type="button"
+              class="pa-calendar-modal__close"
+              (click)="closeCalendarModal()"
+              aria-label="Cerrar calendario"
+            >
+              ✕
+            </button>
+          </header>
+
+          <div class="pa-calendar-modal__controls">
+            <button
+              type="button"
+              class="pa-calendar-nav-btn"
+              (click)="changeCalendarMonth(-1)"
+              aria-label="Mes anterior"
+            >
+              ‹
+            </button>
+
+            <select
+              class="pa-form-control pa-calendar-select"
+              [value]="calendarMonth()"
+              (change)="onMonthSelect($event)"
+              aria-label="Seleccionar mes"
+            >
+              @for (mes of monthNames; track $index) {
+                <option [value]="$index">{{ mes }}</option>
+              }
+            </select>
+
+            <select
+              class="pa-form-control pa-calendar-select"
+              [value]="calendarYear()"
+              (change)="onYearSelect($event)"
+              aria-label="Seleccionar año"
+            >
+              @for (anio of availableYears; track anio) {
+                <option [value]="anio">{{ anio }}</option>
+              }
+            </select>
+
+            <button
+              type="button"
+              class="pa-calendar-nav-btn"
+              (click)="changeCalendarMonth(1)"
+              aria-label="Mes siguiente"
+            >
+              ›
+            </button>
+          </div>
+
+          <div class="pa-calendar-weekdays" aria-hidden="true">
+            <span>Lun</span>
+            <span>Mar</span>
+            <span>Mié</span>
+            <span>Jue</span>
+            <span>Vie</span>
+            <span>Sáb</span>
+            <span>Dom</span>
+          </div>
+
+          <div class="pa-calendar-days-grid">
+            @for (cell of calendarDays(); track $index) {
+              @if (cell === null) {
+                <span class="pa-calendar-day-empty" aria-hidden="true"></span>
+              } @else {
+                <button
+                  type="button"
+                  class="pa-calendar-day-btn"
+                  [class.pa-calendar-day-btn--selected]="isSelectedDay(cell)"
+                  [disabled]="isFutureCalendarDay(cell)"
+                  (click)="selectCalendarDay(cell)"
+                >
+                  {{ cell }}
+                </button>
+              }
+            }
+          </div>
+
+          <footer class="pa-calendar-modal__footer">
+            <app-button
+              label="Cerrar Calendario"
+              variant="outline"
+              type="button"
+              (clicked)="closeCalendarModal()"
+            />
+          </footer>
+        </div>
+      </div>
+    }
   `,
 })
 export class PacienteFormComponent {
@@ -326,15 +559,56 @@ export class PacienteFormComponent {
   private readonly clinicApi = inject(ClinicApiService);
   private readonly toastService = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   @Output() pacienteCreated = new EventEmitter<void>();
 
   readonly submitting = signal(false);
   readonly submitted = signal(false);
   readonly backendError = signal('');
+  readonly cedulaYaRegistrada = signal(false);
+
+  // Estado del Modal de Calendario Grande
+  readonly calendarModalOpen = signal(false);
+  readonly calendarMonth = signal(new Date().getMonth());
+  readonly calendarYear = signal(1960);
+
+  readonly monthNames = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ];
+
+  readonly availableYears: number[] = Array.from(
+    { length: new Date().getFullYear() - 1900 + 1 },
+    (_, i) => new Date().getFullYear() - i
+  );
+
+  readonly calendarDays = computed<(number | null)[]>(() => {
+    const year = this.calendarYear();
+    const month = this.calendarMonth();
+    const firstDayJs = new Date(year, month, 1).getDay(); // 0=Dom..6=Sab
+    const offsetMonday = (firstDayJs + 6) % 7; // 0=Lun..6=Dom
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const cells: (number | null)[] = Array.from({ length: offsetMonday }, () => null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push(d);
+    }
+    return cells;
+  });
 
   readonly form = this.fb.nonNullable.group({
-    tipoDocumento: ['CC' as CreatePacientePayload['tipoDocumento'], [Validators.required]],
+    tipoDocumento: ['' as CreatePacientePayload['tipoDocumento'] | '', [Validators.required]],
     cedula: [
       '',
       {
@@ -344,7 +618,7 @@ export class PacienteFormComponent {
     ],
     nombres: ['', [Validators.required, Validators.minLength(2)]],
     apellidos: ['', [Validators.required, Validators.minLength(2)]],
-    fechaNacimiento: ['', [Validators.required, fechaNoFuturaValidator]],
+    fechaNacimiento: ['', [Validators.required, fechaDdMmYyyyNoFuturaValidator]],
     genero: ['' as CreatePacientePayload['genero'] | '', [Validators.required]],
     telefono: ['', [Validators.required, Validators.minLength(7), Validators.maxLength(20)]],
     email: ['', [Validators.required, Validators.email]],
@@ -356,20 +630,157 @@ export class PacienteFormComponent {
     initialValue: 'INVALID',
   });
 
-  openNativePicker(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    if (input && typeof input.showPicker === 'function') {
-      try {
-        input.showPicker();
-      } catch {
-        // Algunos navegadores ignoran showPicker si ya está abierto
-      }
+  constructor() {
+    this.form.controls.cedula.statusChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.cedulaYaRegistrada.set(
+          this.form.controls.cedula.hasError('cedulaYaRegistrada')
+        );
+        this.cdr.markForCheck();
+      });
+
+    this.form.controls.cedula.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (!this.form.controls.cedula.hasError('cedulaYaRegistrada')) {
+          this.cedulaYaRegistrada.set(false);
+        }
+      });
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.calendarModalOpen()) {
+      this.closeCalendarModal();
     }
+  }
+
+  onFechaInput(event: Event): void {
+    const inputEvent = event as InputEvent;
+    const input = event.target as HTMLInputElement;
+    if (inputEvent.inputType?.startsWith('delete')) {
+      return;
+    }
+
+    const digits = input.value.replace(/\D/g, '').slice(0, 8);
+    let formatted = digits;
+    if (digits.length > 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    } else if (digits.length === 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}/`;
+    } else if (digits.length > 2) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else if (digits.length === 2) {
+      formatted = `${digits}/`;
+    }
+
+    if (formatted !== input.value) {
+      input.value = formatted;
+      this.form.controls.fechaNacimiento.setValue(formatted);
+    }
+  }
+
+  openCalendarModal(): void {
+    const currentVal = this.form.controls.fechaNacimiento.value;
+    const parsed = parseDdMmYyyy(currentVal);
+    if (parsed) {
+      this.calendarYear.set(parsed.getFullYear());
+      this.calendarMonth.set(parsed.getMonth());
+    } else {
+      this.calendarYear.set(1960);
+      this.calendarMonth.set(0);
+    }
+    this.calendarModalOpen.set(true);
+  }
+
+  closeCalendarModal(): void {
+    this.calendarModalOpen.set(false);
+  }
+
+  onBackdropClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.closeCalendarModal();
+    }
+  }
+
+  onMonthSelect(event: Event): void {
+    const val = Number((event.target as HTMLSelectElement).value);
+    if (!Number.isNaN(val)) {
+      this.calendarMonth.set(val);
+    }
+  }
+
+  onYearSelect(event: Event): void {
+    const val = Number((event.target as HTMLSelectElement).value);
+    if (!Number.isNaN(val)) {
+      this.calendarYear.set(val);
+    }
+  }
+
+  changeCalendarMonth(delta: number): void {
+    let month = this.calendarMonth() + delta;
+    let year = this.calendarYear();
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    } else if (month > 11) {
+      month = 0;
+      year += 1;
+    }
+    const maxYear = new Date().getFullYear();
+    if (year >= 1900 && year <= maxYear) {
+      this.calendarMonth.set(month);
+      this.calendarYear.set(year);
+    }
+  }
+
+  isFutureCalendarDay(day: number): boolean {
+    const candidate = new Date(this.calendarYear(), this.calendarMonth(), day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    candidate.setHours(0, 0, 0, 0);
+    return candidate > today;
+  }
+
+  isSelectedDay(day: number): boolean {
+    const parsed = parseDdMmYyyy(this.form.controls.fechaNacimiento.value);
+    if (!parsed) {
+      return false;
+    }
+    return (
+      parsed.getFullYear() === this.calendarYear() &&
+      parsed.getMonth() === this.calendarMonth() &&
+      parsed.getDate() === day
+    );
+  }
+
+  selectCalendarDay(day: number): void {
+    if (this.isFutureCalendarDay(day)) {
+      return;
+    }
+    const selected = new Date(this.calendarYear(), this.calendarMonth(), day);
+    const formatted = formatDateToDdMmYyyy(selected);
+    this.form.controls.fechaNacimiento.setValue(formatted);
+    this.form.controls.fechaNacimiento.markAsDirty();
+    this.form.controls.fechaNacimiento.markAsTouched();
+    this.closeCalendarModal();
+  }
+
+  getFechaErrorMessage(): string {
+    const ctrl = this.form.controls.fechaNacimiento;
+    if (ctrl.hasError('fechaFutura')) {
+      return 'La fecha de nacimiento no puede ser una fecha futura.';
+    }
+    if (ctrl.hasError('formatoFechaInvalido') || ctrl.hasError('fechaInvalida')) {
+      return 'Ingrese una fecha válida en formato dd/mm/aaaa (Ej. 14/05/1952).';
+    }
+    return 'La fecha de nacimiento es obligatoria (formato dd/mm/aaaa).';
   }
 
   isCedulaInvalid(): boolean {
     const c = this.form.controls.cedula;
-    return c.hasError('cedulaYaRegistrada') || (c.invalid && (c.touched || this.submitted()));
+    return this.cedulaYaRegistrada() || (c.invalid && (c.touched || this.submitted()));
   }
 
   isInvalid(controlName: string): boolean {
@@ -389,11 +800,11 @@ export class PacienteFormComponent {
     this.submitting.set(true);
     const raw = this.form.getRawValue();
     const payload: CreatePacientePayload = {
-      tipoDocumento: raw.tipoDocumento,
+      tipoDocumento: raw.tipoDocumento as CreatePacientePayload['tipoDocumento'],
       cedula: raw.cedula.trim(),
       nombres: raw.nombres.trim(),
       apellidos: raw.apellidos.trim(),
-      fechaNacimiento: raw.fechaNacimiento,
+      fechaNacimiento: convertDdMmYyyyToIso(raw.fechaNacimiento),
       genero: raw.genero as CreatePacientePayload['genero'],
       telefono: raw.telefono.trim(),
       email: raw.email.trim(),
@@ -423,8 +834,9 @@ export class PacienteFormComponent {
   resetForm(): void {
     this.submitted.set(false);
     this.backendError.set('');
+    this.cedulaYaRegistrada.set(false);
     this.form.reset({
-      tipoDocumento: 'CC',
+      tipoDocumento: '',
       cedula: '',
       nombres: '',
       apellidos: '',

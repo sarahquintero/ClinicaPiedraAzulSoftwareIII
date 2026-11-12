@@ -300,6 +300,228 @@ input[type='time'].pa-form-control,
   }
 }
 
+/* ==========================================================================
+   Input Manual dd/mm/aaaa + Botón Calendario + Modal Grande Accesible
+   ========================================================================== */
+
+.pa-date-input-group {
+  display: flex;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.pa-date-input-group__input {
+  flex: 1 1 auto;
+}
+
+.pa-datetime-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pa-datetime-row__date {
+  flex: 1 1 260px;
+}
+
+.pa-datetime-row__time {
+  flex: 0 1 190px;
+  min-width: 165px;
+}
+
+.pa-calendar-trigger-btn {
+  flex: 0 0 60px;
+  min-width: 56px;
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pa-radius-sm);
+  border: 2px solid var(--pa-blue-700);
+  background-color: var(--pa-surface-alt);
+  color: var(--pa-blue-900);
+  cursor: pointer;
+  transition:
+    background-color var(--pa-transition),
+    transform var(--pa-transition),
+    color var(--pa-transition);
+
+  &:hover {
+    background-color: var(--pa-blue-700);
+    color: var(--pa-white);
+    transform: translateY(-1px);
+  }
+}
+
+.pa-calendar-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background-color: rgba(11, 37, 69, 0.58);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: paPageEnter 200ms ease-out both;
+}
+
+.pa-calendar-modal {
+  width: 100%;
+  max-width: 580px;
+  background-color: var(--pa-white);
+  border: 3px solid var(--pa-blue-700);
+  border-radius: var(--pa-radius-lg);
+  box-shadow: var(--pa-shadow-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.pa-calendar-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 2px solid var(--pa-surface-alt);
+
+  h3 {
+    font-size: 1.38rem;
+    color: var(--pa-blue-900);
+  }
+
+  p {
+    font-size: 1rem;
+    color: var(--pa-text-secondary);
+  }
+}
+
+.pa-calendar-modal__close {
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: var(--pa-radius-sm);
+  border: 2px solid var(--pa-border-strong);
+  background-color: var(--pa-surface-alt);
+  color: var(--pa-blue-900);
+  font-size: 1.25rem;
+  font-weight: 900;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--pa-danger-bg);
+    border-color: var(--pa-danger-border);
+    color: var(--pa-danger-text);
+  }
+}
+
+.pa-calendar-modal__controls {
+  display: grid;
+  grid-template-columns: 52px 1fr 130px 52px;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.pa-calendar-select {
+  min-height: 50px;
+  padding: 0.5rem 0.75rem;
+  font-size: 1.05rem;
+}
+
+.pa-calendar-nav-btn {
+  min-width: 50px;
+  min-height: 50px;
+  border-radius: var(--pa-radius-sm);
+  border: 2px solid var(--pa-blue-700);
+  background-color: var(--pa-surface-alt);
+  color: var(--pa-blue-900);
+  font-size: 1.65rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--pa-blue-700);
+    color: var(--pa-white);
+  }
+}
+
+.pa-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--pa-blue-800);
+  padding: 0.45rem 0;
+  background-color: var(--pa-surface-alt);
+  border-radius: var(--pa-radius-sm);
+}
+
+.pa-calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.45rem;
+}
+
+.pa-calendar-day-empty {
+  min-height: 50px;
+}
+
+.pa-calendar-day-btn {
+  min-height: 50px;
+  border-radius: var(--pa-radius-sm);
+  border: 2px solid var(--pa-border);
+  background-color: var(--pa-white);
+  color: var(--pa-blue-900);
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color var(--pa-transition),
+    border-color var(--pa-transition),
+    transform var(--pa-transition);
+
+  &:hover:not(:disabled) {
+    background-color: var(--pa-blue-100);
+    border-color: var(--pa-blue-700);
+    transform: scale(1.04);
+  }
+
+  &.pa-calendar-day-btn--selected {
+    background-color: var(--pa-blue-700);
+    border-color: var(--pa-blue-900);
+    color: var(--pa-white);
+  }
+
+  &:disabled {
+    opacity: 0.32;
+    cursor: not-allowed;
+    background-color: #f1f5f9;
+  }
+}
+
+.pa-calendar-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 2px solid var(--pa-surface-alt);
+}
+
+@media (max-width: 540px) {
+  .pa-calendar-modal__controls {
+    grid-template-columns: 48px 1fr 105px 48px;
+  }
+
+  .pa-calendar-day-btn {
+    min-height: 48px;
+    font-size: 1.05rem;
+  }
+}
+
 .pa-form-hint {
   font-size: 0.98rem;
   color: var(--pa-text-muted);

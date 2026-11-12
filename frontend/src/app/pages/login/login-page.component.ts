@@ -57,13 +57,14 @@ import { MainLayoutComponent } from '../../shared/templates/main-layout/main-lay
             </div>
           }
 
-          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="pa-login-form">
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" autocomplete="on" novalidate class="pa-login-form">
             <div class="pa-form-field">
               <label class="pa-form-label" for="login-email">
                 Correo Electrónico <span class="pa-form-req">*</span>
               </label>
               <input
                 id="login-email"
+                name="email"
                 type="email"
                 class="pa-form-control"
                 [class.pa-form-control--invalid]="isInvalid('email')"
@@ -85,6 +86,7 @@ import { MainLayoutComponent } from '../../shared/templates/main-layout/main-lay
               </label>
               <input
                 id="login-password"
+                name="password"
                 type="password"
                 class="pa-form-control"
                 [class.pa-form-control--invalid]="isInvalid('password')"

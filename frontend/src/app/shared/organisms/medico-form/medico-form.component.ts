@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectorRef, Component, EventEmitter, Output, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectorRef, Component, DestroyRef, EventEmitter, Output, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
   AsyncValidatorFn,
@@ -27,7 +27,7 @@ const horarioLaboralValidator: ValidatorFn = (group: AbstractControl): Validatio
 /**
  * Validador asíncrono reactivo para el campo `tarjetaProfesional`:
  * Consume GET /api/medicos/verificar-tarjeta/:tarjeta usando debounceTime(500) y switchMap.
- * Si la tarjeta ya está registrada (disponible === false), retorna { tarjetaYaRegistrada: true }.
+ * Si la tarjeta ya está registrada (existe === true o disponible === false), retorna { tarjetaEnUso: true, tarjetaYaRegistrada: true }.
  */
 export function tarjetaUnicaAsyncValidator(
   clinicApi: ClinicApiService,
@@ -44,7 +44,11 @@ export function tarjetaUnicaAsyncValidator(
       take(1),
       switchMap((valorTarjeta) =>
         clinicApi.verificarTarjeta(valorTarjeta).pipe(
-          map((res) => (res.disponible === false ? { tarjetaYaRegistrada: true } : null)),
+          map((res) =>
+            res.existe === true || res.disponible === false
+              ? { tarjetaEnUso: true, tarjetaYaRegistrada: true }
+              : null
+          ),
           catchError(() => of(null)),
           tap(() => cdr.markForCheck())
         )
@@ -74,16 +78,18 @@ export function tarjetaUnicaAsyncValidator(
         </div>
       }
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" autocomplete="on" novalidate>
         <div class="pa-form-grid">
           <!-- Cédula -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-cedula">
+            <label class="pa-form-label" for="medicoCedula">
               Número de Cédula del Médico <span class="pa-form-req">*</span>
             </label>
             <input
-              id="med-cedula"
+              id="medicoCedula"
+              name="cedula"
               type="text"
+              autocomplete="on"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('cedula')"
               formControlName="cedula"
@@ -99,12 +105,14 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Tarjeta Profesional con Validación Asíncrona Reactiva -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-tp">
+            <label class="pa-form-label" for="tarjetaProfesional">
               Tarjeta Profesional <span class="pa-form-req">*</span>
             </label>
             <input
-              id="med-tp"
+              id="tarjetaProfesional"
+              name="tarjetaProfesional"
               type="text"
+              autocomplete="on"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isTarjetaInvalid()"
               formControlName="tarjetaProfesional"
@@ -115,10 +123,14 @@ export function tarjetaUnicaAsyncValidator(
                 ⏳ Verificando disponibilidad de la tarjeta profesional...
               </div>
             }
-            @if (form.controls.tarjetaProfesional.hasError('tarjetaYaRegistrada')) {
+            @if (
+              form.controls.tarjetaProfesional.errors?.['tarjetaEnUso'] ||
+              form.controls.tarjetaProfesional.errors?.['tarjetaYaRegistrada'] ||
+              tarjetaYaRegistrada()
+            ) {
               <div class="pa-form-error" role="alert">
                 <span class="pa-form-error__icon" aria-hidden="true">⚠️</span>
-                <span>Esta tarjeta profesional ya está registrada</span>
+                <span>Esta tarjeta profesional ya se encuentra registrada</span>
               </div>
             } @else if (isInvalid('tarjetaProfesional')) {
               <div class="pa-form-error" role="alert">
@@ -130,12 +142,14 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Nombres -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-nombres">
+            <label class="pa-form-label" for="medicoNombres">
               Nombres Completos <span class="pa-form-req">*</span>
             </label>
             <input
-              id="med-nombres"
+              id="medicoNombres"
+              name="nombres"
               type="text"
+              autocomplete="given-name"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('nombres')"
               formControlName="nombres"
@@ -151,12 +165,14 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Apellidos -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-apellidos">
+            <label class="pa-form-label" for="medicoApellidos">
               Apellidos Completos <span class="pa-form-req">*</span>
             </label>
             <input
-              id="med-apellidos"
+              id="medicoApellidos"
+              name="apellidos"
               type="text"
+              autocomplete="family-name"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('apellidos')"
               formControlName="apellidos"
@@ -172,12 +188,14 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Especialidad -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-especialidad">
+            <label class="pa-form-label" for="especialidad">
               Especialidad Médica <span class="pa-form-req">*</span>
             </label>
             <input
-              id="med-especialidad"
+              id="especialidad"
+              name="especialidad"
               type="text"
+              autocomplete="on"
               list="pa-especialidades-list"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('especialidad')"
@@ -203,12 +221,14 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Consultorio -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-consultorio">
+            <label class="pa-form-label" for="consultorio">
               Consultorio Asignado <span class="pa-form-req">*</span>
             </label>
             <input
-              id="med-consultorio"
+              id="consultorio"
+              name="consultorio"
               type="text"
+              autocomplete="on"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('consultorio')"
               formControlName="consultorio"
@@ -224,12 +244,14 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Correo Electrónico -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-email">
+            <label class="pa-form-label" for="medicoEmail">
               Correo Institucional <span class="pa-form-req">*</span>
             </label>
             <input
-              id="med-email"
+              id="medicoEmail"
+              name="email"
               type="email"
+              autocomplete="email"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('email')"
               formControlName="email"
@@ -245,12 +267,14 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Teléfono -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-telefono">
+            <label class="pa-form-label" for="medicoTelefono">
               Teléfono de Contacto <span class="pa-form-req">*</span>
             </label>
             <input
-              id="med-telefono"
+              id="medicoTelefono"
+              name="telefono"
               type="tel"
+              autocomplete="tel"
               class="pa-form-control"
               [class.pa-form-control--invalid]="isInvalid('telefono')"
               formControlName="telefono"
@@ -266,11 +290,12 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Días de Atención -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-dias">
+            <label class="pa-form-label" for="diasAtencion">
               Días de Atención <span class="pa-form-req">*</span>
             </label>
             <select
-              id="med-dias"
+              id="diasAtencion"
+              name="diasAtencion"
               class="pa-form-control"
               formControlName="diasAtencion"
             >
@@ -282,19 +307,21 @@ export function tarjetaUnicaAsyncValidator(
 
           <!-- Franja Horaria -->
           <div class="pa-form-field">
-            <label class="pa-form-label" for="med-hora-inicio">
+            <label class="pa-form-label" for="horaInicio">
               Horario de Consulta (Inicio y Fin) <span class="pa-form-req">*</span>
             </label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <input
-                id="med-hora-inicio"
+                id="horaInicio"
+                name="horaInicio"
                 type="time"
                 class="pa-form-control"
                 formControlName="horaInicio"
                 aria-label="Hora de inicio"
               />
               <input
-                id="med-hora-fin"
+                id="horaFin"
+                name="horaFin"
                 type="time"
                 class="pa-form-control"
                 formControlName="horaFin"
@@ -333,12 +360,14 @@ export class MedicoFormComponent {
   private readonly clinicApi = inject(ClinicApiService);
   private readonly toastService = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   @Output() medicoCreated = new EventEmitter<void>();
 
   readonly submitting = signal(false);
   readonly submitted = signal(false);
   readonly backendError = signal('');
+  readonly tarjetaYaRegistrada = signal(false);
 
   readonly form = this.fb.nonNullable.group(
     {
@@ -367,9 +396,35 @@ export class MedicoFormComponent {
     initialValue: 'INVALID',
   });
 
+  constructor() {
+    this.form.controls.tarjetaProfesional.statusChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const c = this.form.controls.tarjetaProfesional;
+        this.tarjetaYaRegistrada.set(
+          c.hasError('tarjetaEnUso') || c.hasError('tarjetaYaRegistrada')
+        );
+        this.cdr.markForCheck();
+      });
+
+    this.form.controls.tarjetaProfesional.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const c = this.form.controls.tarjetaProfesional;
+        if (!c.hasError('tarjetaEnUso') && !c.hasError('tarjetaYaRegistrada')) {
+          this.tarjetaYaRegistrada.set(false);
+        }
+      });
+  }
+
   isTarjetaInvalid(): boolean {
     const c = this.form.controls.tarjetaProfesional;
-    return c.hasError('tarjetaYaRegistrada') || (c.invalid && (c.touched || this.submitted()));
+    return (
+      Boolean(c.errors?.['tarjetaEnUso']) ||
+      Boolean(c.errors?.['tarjetaYaRegistrada']) ||
+      this.tarjetaYaRegistrada() ||
+      (c.invalid && (c.touched || this.submitted()))
+    );
   }
 
   isInvalid(controlName: string): boolean {
@@ -409,6 +464,7 @@ export class MedicoFormComponent {
   resetForm(): void {
     this.submitted.set(false);
     this.backendError.set('');
+    this.tarjetaYaRegistrada.set(false);
     this.form.reset({
       cedula: '',
       tarjetaProfesional: '',

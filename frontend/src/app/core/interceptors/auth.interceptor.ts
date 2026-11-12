@@ -12,8 +12,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const isPublicAuthRoute = req.url.includes('/api/auth/login');
   const isPublicCedulaCheck = req.url.includes('/api/pacientes/verificar-cedula/');
+  const isPublicTarjetaCheck = req.url.includes('/api/medicos/verificar-tarjeta/');
 
-  if (!token || isPublicAuthRoute || isPublicCedulaCheck) {
+  if (!token || isPublicAuthRoute || isPublicCedulaCheck || isPublicTarjetaCheck) {
     return next(req);
   }
 

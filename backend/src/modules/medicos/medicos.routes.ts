@@ -6,12 +6,14 @@ import {
   listMedicosAdminController,
   listMedicosPublicController,
   toggleEstadoMedicoController,
+  verificarTarjetaController,
 } from './medicos.controller';
 import { createMedicoSchema, toggleEstadoMedicoSchema } from './medicos.schemas';
 
 const router = Router();
 
-// Ruta pública: catálogo de médicos activos para consumo del portal y formularios reactivos
+// Rutas públicas: verificación reactiva de tarjeta profesional y catálogo de médicos activos
+router.get('/verificar-tarjeta/:tarjeta', verificarTarjetaController);
 router.get('/', listMedicosPublicController);
 
 // Rutas de Administrador
